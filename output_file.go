@@ -50,29 +50,30 @@ var dateFileNameFuncs = map[string]func(*FileOutput) string{
 
 // FileOutputConfig ...
 type FileOutputConfig struct {
-	FlushInterval     time.Duration `json:"output-file-flush-interval"`
-	SizeLimit         size.Size     `json:"output-file-size-limit"`
-	OutputFileMaxSize size.Size     `json:"output-file-max-size-limit"`
-	QueueLimit        int           `json:"output-file-queue-limit"`
-	Append            bool          `json:"output-file-append"`
-	BufferPath        string        `json:"output-file-buffer"`
+	FlushInterval     time.Duration `json:"output-file-flush-interval" mapstructure:"output-file-flush-interval"`
+	SizeLimit         size.Size     `json:"output-file-size-limit" mapstructure:"output-file-size-limit"`
+	OutputFileMaxSize size.Size     `json:"output-file-max-size-limit" mapstructure:"output-file-max-size-limit"`
+	QueueLimit        int           `json:"output-file-queue-limit" mapstructure:"output-file-queue-limit"`
+	Append            bool          `json:"output-file-append" mapstructure:"output-file-append"`
+	BufferPath        string        `json:"output-file-buffer" mapstructure:"output-file-buffer"`
 	onClose           func(string)
 }
 
 // FileOutput output plugin
 type FileOutput struct {
 	sync.RWMutex
-	pathTemplate    string
-	currentName     string
-	file            *os.File
-	QueueLength     int
-	writer          io.Writer
-	requestPerFile  bool
-	currentID       []byte
-	payloadType     []byte
-	closed          bool
+	pathTemplate   string
+	currentName    string
+	file           *os.File
+	QueueLength    int
+	writer         io.Writer
+	requestPerFile bool
+	currentID      []byte
+	payloadType    []byte
+	closed         bool
 	currentFileSize int
-	totalFileSize   size.Size
+	totalFileSize  size.Size
+	Service        string
 
 	config *FileOutputConfig
 }

@@ -20,15 +20,15 @@ type TCPOutput struct {
 	config      *TCPOutputConfig
 	workerIndex uint32
 
-	close bool
+	Service     string
 }
 
 // TCPOutputConfig tcp output configuration
 type TCPOutputConfig struct {
-	Secure     bool `json:"output-tcp-secure"`
-	Sticky     bool `json:"output-tcp-sticky"`
-	SkipVerify bool `json:"output-tcp-skip-verify"`
-	Workers    int  `json:"output-tcp-workers"`
+	Secure     bool `json:"output-tcp-secure" mapstructure:"output-tcp-secure"`
+	Sticky     bool `json:"output-tcp-sticky" mapstructure:"output-tcp-sticky"`
+	SkipVerify bool `json:"output-tcp-skip-verify" mapstructure:"output-tcp-skip-verify"`
+	Workers    int  `json:"output-tcp-workers" mapstructure:"output-tcp-workers"`
 }
 
 // NewTCPOutput constructor for TCPOutput
