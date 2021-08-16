@@ -20,7 +20,7 @@ import (
 type RAWInputConfig struct {
 	capture.PcapOptions
 	Expire          time.Duration      `json:"input-raw-expire"`
-	CopyBufferSize  size.Size          `json:"copy-buffer-size"`
+	CopyBufferSize  size.Size          `json:"input-row-copy-buffer-size"`
 	Engine          capture.EngineType `json:"input-raw-engine"`
 	TrackResponse   bool               `json:"input-raw-track-response"`
 	Protocol        tcp.TCPProtocol    `json:"input-raw-protocol"`
@@ -98,7 +98,7 @@ func (i *RAWInput) PluginRead() (*Message, error) {
 
 	// to be removed....
 	if msgTCP.Truncated {
-		Debug(2, "[INPUT-RAW] message truncated, increase copy-buffer-size")
+		Debug(2, "[INPUT-RAW] message truncated, increase input-raw-copy-buffer-size")
 	}
 	// to be removed...
 	if msgTCP.TimedOut {
