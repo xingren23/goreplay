@@ -20,6 +20,7 @@ type TCPOutput struct {
 	config      *TCPOutputConfig
 	workerIndex uint32
 
+	close bool
 	Service     string
 }
 

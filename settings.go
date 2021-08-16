@@ -143,7 +143,8 @@ func init() {
 	flag.DurationVar(&Settings.InputRAWConfig.Expire, "input-raw-expire", 0, "How much it should wait for the last TCP packet, till consider that TCP message complete. Default: 2s")
 	flag.StringVar(&Settings.InputRAWConfig.BPFFilter, "input-raw-bpf-filter", "", "BPF filter to write custom expressions. Can be useful in case of non standard network interfaces like tunneling or SPAN port. Example: --input-raw-bpf-filter 'dst port 80'")
 	flag.StringVar(&Settings.InputRAWConfig.TimestampType, "input-raw-timestamp-type", "", "Possible values: PCAP_TSTAMP_HOST, PCAP_TSTAMP_HOST_LOWPREC, PCAP_TSTAMP_HOST_HIPREC, PCAP_TSTAMP_ADAPTER, PCAP_TSTAMP_ADAPTER_UNSYNCED. This values not supported on all systems, GoReplay will tell you available values of you put wrong one.")
-	flag.Var(&Settings.InputRAWConfig.CopyBufferSize, "copy-buffer-size", "Set the buffer size for an individual request (default 5MB)")
+	flag.Var(&Settings.InputRAWConfig.CopyBufferSize, "copy-buffer-size",
+		"Set the buffer size for an individual request (default 5MB)")
 	flag.BoolVar(&Settings.InputRAWConfig.Snaplen, "input-raw-override-snaplen", false, "Override the capture snaplen to be 64k. Required for some Virtualized environments")
 	flag.DurationVar(&Settings.InputRAWConfig.BufferTimeout, "input-raw-buffer-timeout", 0, "set the pcap timeout. for immediate mode don't set this flag")
 	flag.Var(&Settings.InputRAWConfig.BufferSize, "input-raw-buffer-size", "Controls size of the OS buffer which holds packets until they dispatched. Default value depends by system: in Linux around 2MB. If you see big package drop, increase this value.")
@@ -212,7 +213,7 @@ func init() {
 	// default values, using for tests
 	Settings.OutputFileConfig.SizeLimit = 33554432
 	Settings.OutputFileConfig.OutputFileMaxSize = 1099511627776
-	Settings.CopyBufferSize = 5242880
+	Settings.InputRAWConfig.CopyBufferSize = 5242880
 
 }
 
@@ -223,8 +224,8 @@ func checkSettings() {
 	if Settings.OutputFileConfig.OutputFileMaxSize < 1 {
 		Settings.OutputFileConfig.OutputFileMaxSize.Set("1tb")
 	}
-	if Settings.CopyBufferSize < 1 {
-		Settings.CopyBufferSize.Set("5mb")
+	if Settings.InputRAWConfig.CopyBufferSize < 1 {
+		Settings.InputRAWConfig.CopyBufferSize.Set("5mb")
 	}
 }
 
