@@ -47,6 +47,9 @@ type ServiceSettings struct {
 
 	InputFile        MultiOption      `json:"input-file" mapstructure:"input-file"`
 	InputFileLoop    bool             `json:"input-file-loop" mapstructure:"input-file-loop"`
+	InputFileReadDepth int           `json:"input-file-read-depth" mapstructure:"input-file-read-depth"`
+	InputFileDryRun    bool          `json:"input-file-dry-run" mapstructure:"input-file-dry-run"`
+	InputFileMaxWait   time.Duration `json:"input-file-max-wait" mapstructure:"input-file-max-wait"`
 	OutputFile       MultiOption      `json:"output-file" mapstructure:"output-file"`
 	OutputFileConfig FileOutputConfig `mapstructure:",squash"`
 
