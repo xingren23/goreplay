@@ -93,6 +93,18 @@ func NewFileOutput(pathTemplate string, config *FileOutputConfig) *FileOutput {
 		config.FlushInterval = 100 * time.Millisecond
 	}
 
+	if config.QueueLimit == 0 {
+		config.QueueLimit = 256
+	}
+
+	if config.SizeLimit < 1 {
+		config.SizeLimit = 33554432 // 32mb
+	}
+
+	if config.OutputFileMaxSize < 1 {
+		config.OutputFileMaxSize = 1099511627776
+	}
+
 	go func() {
 		for {
 			time.Sleep(config.FlushInterval)
@@ -292,7 +304,7 @@ func (o *FileOutput) flush() {
 }
 
 func (o *FileOutput) String() string {
-	return "File output: " + o.file.Name()
+	return "File output: " + o.pathTemplate
 }
 
 func (o *FileOutput) closeLocked() error {

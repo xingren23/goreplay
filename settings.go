@@ -117,20 +117,20 @@ func init() {
 	flag.BoolVar(&Settings.OutputTCPConfig.Secure, "output-tcp-secure", false, "Use TLS secure connection. --input-file on another end should have TLS turned on as well.")
 	flag.BoolVar(&Settings.OutputTCPConfig.SkipVerify, "output-tcp-skip-verify", false, "Don't verify hostname on TLS secure connection.")
 	flag.BoolVar(&Settings.OutputTCPConfig.Sticky, "output-tcp-sticky", false, "Use Sticky connection. Request/Response with same ID will be sent to the same connection.")
-	flag.IntVar(&Settings.OutputTCPConfig.Workers, "output-tcp-workers", 0, "Number of parallel tcp connections, default is 10")
+	flag.IntVar(&Settings.OutputTCPConfig.Workers, "output-tcp-workers", 10, "Number of parallel tcp connections, default is 10")
 	flag.BoolVar(&Settings.OutputTCPStats, "output-tcp-stats", false, "Report TCP output queue stats to console every 5 seconds.")
 
 	flag.Var(&Settings.InputFile, "input-file", "Read requests from file: \n\tgor --input-file ./requests.gor --output-http staging.com")
 	flag.BoolVar(&Settings.InputFileLoop, "input-file-loop", false, "Loop input files, useful for performance testing.")
 
 	flag.Var(&Settings.OutputFile, "output-file", "Write incoming requests to file: \n\tgor --input-raw :80 --output-file ./requests.gor")
-	flag.DurationVar(&Settings.OutputFileConfig.FlushInterval, "output-file-flush-interval", 0, "Interval for forcing buffer flush to the file, default: 1s.")
+	flag.DurationVar(&Settings.OutputFileConfig.FlushInterval, "output-file-flush-interval", time.Second, "Interval for forcing buffer flush to the file, default: 1s.")
 	flag.BoolVar(&Settings.OutputFileConfig.Append, "output-file-append", false, "The flushed chunk is appended to existence file or not. ")
 	flag.Var(&Settings.OutputFileConfig.SizeLimit, "output-file-size-limit", "Size of each chunk. Default: 32mb")
-	flag.IntVar(&Settings.OutputFileConfig.QueueLimit, "output-file-queue-limit", 0, "The length of the chunk queue. Default: 256")
+	flag.IntVar(&Settings.OutputFileConfig.QueueLimit, "output-file-queue-limit", 256, "The length of the chunk queue. Default: 256")
 	flag.Var(&Settings.OutputFileConfig.OutputFileMaxSize, "output-file-max-size-limit", "Max size of output file, Default: 1TB")
 
-	flag.StringVar(&Settings.OutputFileConfig.BufferPath, "output-file-buffer", "", "The path for temporary storing current buffer: \n\tgor --input-raw :80 --output-file s3://mybucket/logs/%Y-%m-%d.gz --output-file-buffer /mnt/logs. Default: /tmp")
+	flag.StringVar(&Settings.OutputFileConfig.BufferPath, "output-file-buffer", "/tmp", "The path for temporary storing current buffer: \n\tgor --input-raw :80 --output-file s3://mybucket/logs/%Y-%m-%d.gz --output-file-buffer /mnt/logs")
 
 	flag.BoolVar(&Settings.PrettifyHTTP, "prettify-http", false, "If enabled, will automatically decode requests and responses with: Content-Encoding: gzip and Transfer-Encoding: chunked. Useful for debugging, in conjuction with --output-stdout")
 
@@ -143,8 +143,7 @@ func init() {
 	flag.DurationVar(&Settings.InputRAWConfig.Expire, "input-raw-expire", 0, "How much it should wait for the last TCP packet, till consider that TCP message complete. Default: 2s")
 	flag.StringVar(&Settings.InputRAWConfig.BPFFilter, "input-raw-bpf-filter", "", "BPF filter to write custom expressions. Can be useful in case of non standard network interfaces like tunneling or SPAN port. Example: --input-raw-bpf-filter 'dst port 80'")
 	flag.StringVar(&Settings.InputRAWConfig.TimestampType, "input-raw-timestamp-type", "", "Possible values: PCAP_TSTAMP_HOST, PCAP_TSTAMP_HOST_LOWPREC, PCAP_TSTAMP_HOST_HIPREC, PCAP_TSTAMP_ADAPTER, PCAP_TSTAMP_ADAPTER_UNSYNCED. This values not supported on all systems, GoReplay will tell you available values of you put wrong one.")
-	flag.Var(&Settings.InputRAWConfig.CopyBufferSize, "copy-buffer-size",
-		"Set the buffer size for an individual request (default 5MB)")
+	flag.Var(&Settings.InputRAWConfig.CopyBufferSize, "copy-buffer-size", "Set the buffer size for an individual request (default 5MB)")
 	flag.BoolVar(&Settings.InputRAWConfig.Snaplen, "input-raw-override-snaplen", false, "Override the capture snaplen to be 64k. Required for some Virtualized environments")
 	flag.DurationVar(&Settings.InputRAWConfig.BufferTimeout, "input-raw-buffer-timeout", 0, "set the pcap timeout. for immediate mode don't set this flag")
 	flag.Var(&Settings.InputRAWConfig.BufferSize, "input-raw-buffer-size", "Controls size of the OS buffer which holds packets until they dispatched. Default value depends by system: in Linux around 2MB. If you see big package drop, increase this value.")
@@ -160,16 +159,17 @@ func init() {
 	flag.Var(&Settings.OutputHTTPConfig.BufferSize, "output-http-response-buffer", "HTTP response buffer size, all data after this size will be discarded.")
 	flag.IntVar(&Settings.OutputHTTPConfig.WorkersMin, "output-http-workers-min", 0, "Gor uses dynamic worker scaling. Enter a number to set a minimum number of workers. default = 1.")
 	flag.IntVar(&Settings.OutputHTTPConfig.WorkersMax, "output-http-workers", 0, "Gor uses dynamic worker scaling. Enter a number to set a maximum number of workers. default = 0 = unlimited.")
-	flag.IntVar(&Settings.OutputHTTPConfig.QueueLen, "output-http-queue-len", 0, "Number of requests that can be queued for output, if all workers are busy. Default: 1000")
+	flag.IntVar(&Settings.OutputHTTPConfig.QueueLen, "output-http-queue-len", 1000, "Number of requests that can be queued for output, if all workers are busy. default = 1000")
 	flag.BoolVar(&Settings.OutputHTTPConfig.SkipVerify, "output-http-skip-verify", false, "Don't verify hostname on TLS secure connection.")
-	flag.DurationVar(&Settings.OutputHTTPConfig.WorkerTimeout, "output-http-worker-timeout", 0, "Duration to rollback idle workers. Default: 2s")
+	flag.DurationVar(&Settings.OutputHTTPConfig.WorkerTimeout, "output-http-worker-timeout", 2*time.Second, "Duration to rollback idle workers.")
 
 	flag.IntVar(&Settings.OutputHTTPConfig.RedirectLimit, "output-http-redirects", 0, "Enable how often redirects should be followed.")
-	flag.DurationVar(&Settings.OutputHTTPConfig.Timeout, "output-http-timeout", 0, "Specify HTTP request/response timeout. By default 5s. Example: --output-http-timeout 30s")
+	flag.DurationVar(&Settings.OutputHTTPConfig.Timeout, "output-http-timeout", 5*time.Second, "Specify HTTP request/response timeout. By default 5s. Example: --output-http-timeout 30s")
 	flag.BoolVar(&Settings.OutputHTTPConfig.TrackResponses, "output-http-track-response", false, "If turned on, HTTP output responses will be set to all outputs like stdout, file and etc.")
 
 	flag.BoolVar(&Settings.OutputHTTPConfig.Stats, "output-http-stats", false, "Report http output queue stats to console every N milliseconds. See output-http-stats-ms")
-	flag.IntVar(&Settings.OutputHTTPConfig.StatsMs, "output-http-stats-ms", 0, "Report http output queue stats to console every N milliseconds. Default: 5000")
+	flag.IntVar(&Settings.OutputHTTPConfig.StatsMs, "output-http-stats-ms", 5000,
+		"Report http output queue stats to console every N milliseconds. Default: 5000")
 	flag.BoolVar(&Settings.OutputHTTPConfig.OriginalHost, "http-original-host", false, "Normally gor replaces the Host http header with the host supplied with --output-http.  This option disables that behavior, preserving the original Host header.")
 	flag.StringVar(&Settings.OutputHTTPConfig.ElasticSearch, "output-http-elasticsearch", "", "Send request and response stats to ElasticSearch:\n\tgor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'")
 	/* outputHTTPConfig */

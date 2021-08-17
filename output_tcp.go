@@ -11,7 +11,7 @@ import (
 
 // TCPOutput used for sending raw tcp payloads
 // Currently used for internal communication between listener and replay server
-// Can be used for transferring binary payloads like protocol buffers
+// Can be used for transfering binary payloads like protocol buffers
 type TCPOutput struct {
 	address     string
 	limit       int
@@ -26,10 +26,10 @@ type TCPOutput struct {
 
 // TCPOutputConfig tcp output configuration
 type TCPOutputConfig struct {
-	Secure     bool `json:"output-tcp-secure" mapstructure:"output-tcp-secure"`
-	Sticky     bool `json:"output-tcp-sticky" mapstructure:"output-tcp-sticky"`
-	SkipVerify bool `json:"output-tcp-skip-verify" mapstructure:"output-tcp-skip-verify"`
-	Workers    int  `json:"output-tcp-workers" mapstructure:"output-tcp-workers"`
+	Secure     bool `json:"output-tcp-secure"`
+	Sticky     bool `json:"output-tcp-sticky"`
+	SkipVerify bool `json:"output-tcp-skip-verify"`
+	Workers    int  `json:"output-tcp-workers"`
 }
 
 // NewTCPOutput constructor for TCPOutput
@@ -96,15 +96,16 @@ func (o *TCPOutput) worker(bufferIndex int) {
 	}
 }
 
-func (o *TCPOutput) getBufferIndex(msg *Message) int {
+func (o *TCPOutput) getBufferIndex(data []byte) int {
 	if !o.config.Sticky {
 		o.workerIndex++
 		return int(o.workerIndex) % o.config.Workers
 	}
 
 	hasher := fnv.New32a()
-	hasher.Write(payloadID(msg.Meta))
+	hasher.Write(payloadMeta(data)[1])
 	return int(hasher.Sum32()) % o.config.Workers
+
 }
 
 // PluginWrite writes message to this plugin
@@ -113,7 +114,7 @@ func (o *TCPOutput) PluginWrite(msg *Message) (n int, err error) {
 		return len(msg.Data), nil
 	}
 
-	bufferIndex := o.getBufferIndex(msg)
+	bufferIndex := o.getBufferIndex(msg.Data)
 	o.buf[bufferIndex] <- msg
 
 	if Settings.OutputTCPStats {

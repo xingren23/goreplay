@@ -80,6 +80,14 @@ func NewRAWInput(address string, config RAWInputConfig) (i *RAWInput) {
 		i.RAWInputConfig.Expire = time.Second * 2
 	}
 
+	if i.RAWInputConfig.CopyBufferSize < 1 {
+		i.RAWInputConfig.CopyBufferSize = 5242880 // 5mb
+	}
+
+	if i.RAWInputConfig.Expire == 0 {
+		i.RAWInputConfig.Expire = time.Second * 2
+	}
+
 	i.listen(address)
 
 	return
