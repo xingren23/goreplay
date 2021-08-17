@@ -41,6 +41,7 @@ type RAWInput struct {
 	messageParser  *tcp.MessageParser
 	cancelListener context.CancelFunc
 	closed         bool
+	Service        string
 }
 
 // NewRAWInput constructor for RAWInput. Accepts raw input config as arguments.
@@ -71,6 +72,22 @@ func NewRAWInput(address string, config RAWInputConfig) (i *RAWInput) {
 	i.host = host
 	i.ports = ports
 
+	if i.RAWInputConfig.CopyBufferSize < 1 {
+		i.RAWInputConfig.CopyBufferSize = 5242880 // 5mb
+	}
+
+	if i.RAWInputConfig.Expire == 0 {
+		i.RAWInputConfig.Expire = time.Second * 2
+	}
+
+	if i.RAWInputConfig.CopyBufferSize < 1 {
+		i.RAWInputConfig.CopyBufferSize = 5242880 // 5mb
+	}
+
+	if i.RAWInputConfig.Expire == 0 {
+		i.RAWInputConfig.Expire = time.Second * 2
+	}
+
 	i.listen(address)
 
 	return
@@ -94,7 +111,7 @@ func (i *RAWInput) PluginRead() (*Message, error) {
 			msg.Data = proto.SetHeader(msg.Data, []byte(i.RealIPHeader), []byte(msgTCP.SrcAddr))
 		}
 	}
-	msg.Meta = payloadHeader(msgType, msgTCP.UUID(), msgTCP.Start.UnixNano(), msgTCP.End.UnixNano()-msgTCP.Start.UnixNano())
+	msg.Meta = payloadHeader(msgType, msgTCP.UUID(), msgTCP.Start.UnixNano(), msgTCP.End.UnixNano()-msgTCP.Start.UnixNano(), i.Service)
 
 	// to be removed....
 	if msgTCP.Truncated {
