@@ -3,8 +3,8 @@
 package main
 
 import (
-	"expvar"
 	"bytes"
+	"expvar"
 	"flag"
 	"fmt"
 	"log"
@@ -163,15 +163,15 @@ func main() {
 
 		log.Fatal(http.ListenAndServe(args[1], loggingMiddleware(args[1], http.FileServer(http.Dir(dir)))))
 		return
-	}
-	// viper.WatchConfig()
+	} else {
+		// viper.WatchConfig()
+		loadConfig(nil)
 
-	loadConfig(nil)
-
-	plugins = NewPlugins("", Settings.ServiceSettings, nil)
-	if len(Settings.Services) > 0 {
-		for service, config := range Settings.Services {
-			NewPlugins(service, config, plugins)
+		plugins = NewPlugins("", Settings.ServiceSettings, nil)
+		if len(Settings.Services) > 0 {
+			for service, config := range Settings.Services {
+				NewPlugins(service, config, plugins)
+			}
 		}
 	}
 
@@ -217,7 +217,6 @@ func main() {
 	}
 	emitter.Close()
 	os.Exit(exit)
-
 }
 
 func profileCPU(cpuprofile string) {

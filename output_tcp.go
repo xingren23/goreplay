@@ -11,7 +11,7 @@ import (
 
 // TCPOutput used for sending raw tcp payloads
 // Currently used for internal communication between listener and replay server
-// Can be used for transfering binary payloads like protocol buffers
+// Can be used for transferring binary payloads like protocol buffers
 type TCPOutput struct {
 	address     string
 	limit       int
@@ -20,8 +20,8 @@ type TCPOutput struct {
 	config      *TCPOutputConfig
 	workerIndex uint32
 
-	close bool
-	Service     string
+	close   bool
+	Service string
 }
 
 // TCPOutputConfig tcp output configuration

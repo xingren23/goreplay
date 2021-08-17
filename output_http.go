@@ -62,7 +62,7 @@ type HTTPOutput struct {
 	responses     chan *response
 	stop          chan bool // Channel used only to indicate goroutine should shutdown
 
-	Service       string
+	Service string
 }
 
 // NewHTTPOutput constructor for HTTPOutput
@@ -105,13 +105,10 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) PluginReadWriter {
 	if config.WorkerTimeout <= 0 {
 		config.WorkerTimeout = time.Second * 2
 	}
-	if config.StatsMs == 0 {
+	if config.StatsMs <= 0 {
 		config.StatsMs = 5000
 	}
-	if config.QueueLen == 0 {
-		config.StatsMs = 1000
-	}
-	if config.Timeout == 0 {
+	if config.Timeout <= 0 {
 		config.Timeout = 5 * time.Second
 	}
 

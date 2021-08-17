@@ -62,18 +62,18 @@ type FileOutputConfig struct {
 // FileOutput output plugin
 type FileOutput struct {
 	sync.RWMutex
-	pathTemplate   string
-	currentName    string
-	file           *os.File
-	QueueLength    int
-	writer         io.Writer
-	requestPerFile bool
-	currentID      []byte
-	payloadType    []byte
-	closed         bool
+	pathTemplate    string
+	currentName     string
+	file            *os.File
+	QueueLength     int
+	writer          io.Writer
+	requestPerFile  bool
+	currentID       []byte
+	payloadType     []byte
+	closed          bool
 	currentFileSize int
-	totalFileSize  size.Size
-	Service        string
+	totalFileSize   size.Size
+	Service         string
 
 	config *FileOutputConfig
 }
@@ -89,11 +89,11 @@ func NewFileOutput(pathTemplate string, config *FileOutputConfig) *FileOutput {
 		o.requestPerFile = true
 	}
 
-	if config.FlushInterval == 0 {
+	if config.FlushInterval <= 0 {
 		config.FlushInterval = 100 * time.Millisecond
 	}
 
-	if config.QueueLimit == 0 {
+	if config.QueueLimit <= 0 {
 		config.QueueLimit = 256
 	}
 
@@ -304,7 +304,7 @@ func (o *FileOutput) flush() {
 }
 
 func (o *FileOutput) String() string {
-	return "File output: " + o.pathTemplate
+	return "File output: " + o.file.Name()
 }
 
 func (o *FileOutput) closeLocked() error {

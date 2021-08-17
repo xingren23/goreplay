@@ -29,8 +29,6 @@ func (e *Emitter) Start(plugins *InOutPlugins, middlewareCmd string) {
 	if Settings.InputRAWConfig.CopyBufferSize < 1 {
 		Settings.InputRAWConfig.CopyBufferSize = 5 << 20
 	}
-
-	// Optimisation to not call reflect on each emit (and yes I did not wanted to add new Service interface)
 	e.plugins = plugins
 
 	if middlewareCmd != "" {
@@ -172,7 +170,6 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 					hasher.Write(meta[1])
 
 					wIndex = int(hasher.Sum32()) % len(writers)
-
 					if _, err := writers[wIndex].PluginWrite(msg); err != nil {
 						return err
 					}

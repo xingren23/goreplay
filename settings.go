@@ -45,13 +45,13 @@ type ServiceSettings struct {
 	OutputTCPConfig TCPOutputConfig `mapstructure:",squash"`
 	OutputTCPStats  bool            `json:"output-tcp-stats" mapstructure:"output-tcp-stats"`
 
-	InputFile        MultiOption      `json:"input-file" mapstructure:"input-file"`
-	InputFileLoop    bool             `json:"input-file-loop" mapstructure:"input-file-loop"`
-	InputFileReadDepth int           `json:"input-file-read-depth" mapstructure:"input-file-read-depth"`
-	InputFileDryRun    bool          `json:"input-file-dry-run" mapstructure:"input-file-dry-run"`
-	InputFileMaxWait   time.Duration `json:"input-file-max-wait" mapstructure:"input-file-max-wait"`
-	OutputFile       MultiOption      `json:"output-file" mapstructure:"output-file"`
-	OutputFileConfig FileOutputConfig `mapstructure:",squash"`
+	InputFile          MultiOption      `json:"input-file" mapstructure:"input-file"`
+	InputFileLoop      bool             `json:"input-file-loop" mapstructure:"input-file-loop"`
+	InputFileReadDepth int              `json:"input-file-read-depth" mapstructure:"input-file-read-depth"`
+	InputFileDryRun    bool             `json:"input-file-dry-run" mapstructure:"input-file-dry-run"`
+	InputFileMaxWait   time.Duration    `json:"input-file-max-wait" mapstructure:"input-file-max-wait"`
+	OutputFile         MultiOption      `json:"output-file" mapstructure:"output-file"`
+	OutputFileConfig   FileOutputConfig `mapstructure:",squash"`
 
 	InputRAW       MultiOption    `json:"input-raw" mapstructure:"input-raw"`
 	InputRAWConfig RAWInputConfig `mapstructure:",squash"`
@@ -102,7 +102,7 @@ func init() {
 		Settings.ExitAfter = 5 * time.Minute
 	}
 
-	flag.StringVar(&Settings.Service, "service", "", "Identified of currenlty capture service. Can be used if you need to record and replay mutiple services at once.")
+	flag.StringVar(&Settings.Service, "service", "", "Identified of currently capture service. Can be used if you need to record and replay multi services at once.")
 
 	flag.BoolVar(&Settings.SplitOutput, "split-output", false, "By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.")
 	flag.BoolVar(&Settings.RecognizeTCPSessions, "recognize-tcp-sessions", false, "[PRO] If turned on http output will create separate worker for each TCP session. Splitting output will session based as well.")
@@ -146,16 +146,17 @@ func init() {
 	flag.Var(&Settings.InputRAWConfig.Engine, "input-raw-engine", "Intercept traffic using `libpcap` (default), `raw_socket` or `pcap_file`")
 	flag.Var(&Settings.InputRAWConfig.Protocol, "input-raw-protocol", "Specify application protocol of intercepted traffic. Possible values: http, binary")
 	flag.StringVar(&Settings.InputRAWConfig.RealIPHeader, "input-raw-realip-header", "", "If not blank, injects header with given name and real IP value to the request payload. Usually this header should be named: X-Real-IP")
-	flag.DurationVar(&Settings.InputRAWConfig.Expire, "input-raw-expire", 0, "How much it should wait for the last TCP packet, till consider that TCP message complete. Default: 2s")
+	flag.DurationVar(&Settings.InputRAWConfig.Expire, "input-raw-expire", time.Second*2, "How much it should wait for the last TCP packet, till consider that TCP message complete. Default: 2s")
 	flag.StringVar(&Settings.InputRAWConfig.BPFFilter, "input-raw-bpf-filter", "", "BPF filter to write custom expressions. Can be useful in case of non standard network interfaces like tunneling or SPAN port. Example: --input-raw-bpf-filter 'dst port 80'")
 	flag.StringVar(&Settings.InputRAWConfig.TimestampType, "input-raw-timestamp-type", "", "Possible values: PCAP_TSTAMP_HOST, PCAP_TSTAMP_HOST_LOWPREC, PCAP_TSTAMP_HOST_HIPREC, PCAP_TSTAMP_ADAPTER, PCAP_TSTAMP_ADAPTER_UNSYNCED. This values not supported on all systems, GoReplay will tell you available values of you put wrong one.")
-	flag.Var(&Settings.InputRAWConfig.CopyBufferSize, "copy-buffer-size", "Set the buffer size for an individual request (default 5MB)")
+	flag.Var(&Settings.InputRAWConfig.CopyBufferSize, "input-row-copy-buffer-size", "Set the buffer size for an individual request (default 5MB)")
 	flag.BoolVar(&Settings.InputRAWConfig.Snaplen, "input-raw-override-snaplen", false, "Override the capture snaplen to be 64k. Required for some Virtualized environments")
 	flag.DurationVar(&Settings.InputRAWConfig.BufferTimeout, "input-raw-buffer-timeout", 0, "set the pcap timeout. for immediate mode don't set this flag")
 	flag.Var(&Settings.InputRAWConfig.BufferSize, "input-raw-buffer-size", "Controls size of the OS buffer which holds packets until they dispatched. Default value depends by system: in Linux around 2MB. If you see big package drop, increase this value.")
 	flag.BoolVar(&Settings.InputRAWConfig.Promiscuous, "input-raw-promisc", false, "enable promiscuous mode")
 	flag.BoolVar(&Settings.InputRAWConfig.Monitor, "input-raw-monitor", false, "enable RF monitor mode")
 	flag.BoolVar(&Settings.InputRAWConfig.Stats, "input-raw-stats", false, "enable stats generator on raw TCP messages")
+	flag.BoolVar(&Settings.InputRAWConfig.AllowIncomplete, "input-raw-allow-incomplete", false, "If turned on Gor will record HTTP messages with missing packets")
 
 	flag.StringVar(&Settings.Middleware, "middleware", "", "Used for modifying traffic using external command")
 
@@ -174,8 +175,7 @@ func init() {
 	flag.BoolVar(&Settings.OutputHTTPConfig.TrackResponses, "output-http-track-response", false, "If turned on, HTTP output responses will be set to all outputs like stdout, file and etc.")
 
 	flag.BoolVar(&Settings.OutputHTTPConfig.Stats, "output-http-stats", false, "Report http output queue stats to console every N milliseconds. See output-http-stats-ms")
-	flag.IntVar(&Settings.OutputHTTPConfig.StatsMs, "output-http-stats-ms", 5000,
-		"Report http output queue stats to console every N milliseconds. Default: 5000")
+	flag.IntVar(&Settings.OutputHTTPConfig.StatsMs, "output-http-stats-ms", 5000, "Report http output queue stats to console every N milliseconds. default: 5000")
 	flag.BoolVar(&Settings.OutputHTTPConfig.OriginalHost, "http-original-host", false, "Normally gor replaces the Host http header with the host supplied with --output-http.  This option disables that behavior, preserving the original Host header.")
 	flag.StringVar(&Settings.OutputHTTPConfig.ElasticSearch, "output-http-elasticsearch", "", "Send request and response stats to ElasticSearch:\n\tgor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'")
 	/* outputHTTPConfig */
