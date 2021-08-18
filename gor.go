@@ -7,6 +7,7 @@ import (
 	"expvar"
 	"flag"
 	"fmt"
+	"github.com/mitchellh/mapstructure"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -20,7 +21,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -95,7 +95,6 @@ func MultiOptionDecoder(f reflect.Type, t reflect.Type, data interface{}) (inter
 		} else {
 			fs.Set(fmt.Sprintf("%v", data))
 		}
-
 		return val, nil
 	}
 

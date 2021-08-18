@@ -31,19 +31,14 @@ services:
       - "Bar: foo"
 `)
 	
-	Settings = AppSettings{}
+	Settings = *NewAppSettings()
 	loadConfig(yamlExample)
 	defer func() {
-		Settings = AppSettings{}
+		Settings = *NewAppSettings()
 	}()
 
 	expectedConfig := AppSettings{
-		ServiceSettings: ServiceSettings{
-			Verbose:     2,
-			InputRAW:    MultiOption{"80"},
-			OutputDummy: MultiOption{"true"},
-		},
-
+		ServiceSettings: *NewServiceSettings(),
 		Services: map[string]ServiceSettings{
 			"foo": {
 				InputRAW:   MultiOption{"8080"},
@@ -55,6 +50,9 @@ services:
 			},
 		},
 	}
+	expectedConfig.ServiceSettings.Verbose = 2
+	expectedConfig.ServiceSettings.InputRAW = MultiOption{"80"}
+	expectedConfig.ServiceSettings.OutputDummy = MultiOption{"1"}
 
 	assert.Equal(t, expectedConfig, Settings, "config should match")
 }
