@@ -127,9 +127,10 @@ func loadConfig(rawConfig []byte) {
 	} else {
 		// Error can happen if file not found
 		err = viper.ReadInConfig()
-
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			log.Fatal("Error loading config:", err)
+		if err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+				log.Fatal("Error loading config:", err)
+			}
 		}
 	}
 
