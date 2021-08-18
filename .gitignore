@@ -32,3 +32,5 @@ corpus
 crashers
 suppressions
 vendor/*
+
+config.yaml
