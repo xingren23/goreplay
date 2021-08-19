@@ -19,6 +19,10 @@ func TestOutputKafkaRAW(t *testing.T) {
 		UseJSON:  false,
 	}, nil)
 
+	if output == nil {
+		t.Error("New Kafka Output Failed")
+	}
+
 	output.PluginWrite(&Message{Meta: []byte("1 2 3\n"), Data: []byte("GET / HTTP1.1\r\nHeader: 1\r\n\r\n")})
 
 	resp := <-producer.Successes()
@@ -39,8 +43,12 @@ func TestOutputKafkaJSON(t *testing.T) {
 	output := NewKafkaOutput("", &OutputKafkaConfig{
 		producer: producer,
 		Topic:    "test",
-		UseJSON:  true,
+		UseJSON:  false,
 	}, nil)
+
+	if output == nil {
+		t.Error("New Kafka Output Failed")
+	}
 
 	output.PluginWrite(&Message{Meta: []byte("1 2 3\n"), Data: []byte("GET / HTTP1.1\r\nHeader: 1\r\n\r\n")})
 

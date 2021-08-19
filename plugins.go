@@ -50,7 +50,7 @@ func extractLimitOptions(options string) (string, string) {
 // Automatically detects type of plugin and initialize it
 //
 // See this article if curious about reflect stuff below: http://blog.burntsushi.net/type-parametric-functions-golang
-func (plugins *InOutPlugins) registerPlugin(service string, constructor interface{}, options ...interface{}) {
+func (plugins *InOutPlugins) registerPlugin(service string, constructor interface{}, options ...interface{}) error {
 	if service == "" && Settings.Service != "" {
 		service = Settings.Service
 	}
@@ -74,7 +74,9 @@ func (plugins *InOutPlugins) registerPlugin(service string, constructor interfac
 
 	// Calling our constructor with list of given options
 	plugin := vc.Call(vo)[0].Interface()
-	fmt.Sprintf("%#v", vc.Call(vo)[0].Interface())
+	if reflect.ValueOf(plugin).IsNil() {
+		return fmt.Errorf("Construct service %s plugin failed", service)
+	}
 	reflect.ValueOf(plugin).Elem().FieldByName("Service").SetString(service)
 
 	if limit != "" {
@@ -92,6 +94,7 @@ func (plugins *InOutPlugins) registerPlugin(service string, constructor interfac
 	plugins.All = append(plugins.All, plugin)
 
 	fmt.Println("Loaded plugin:", service, plugin)
+	return nil
 }
 
 // NewPlugins specify and initialize all available plugins

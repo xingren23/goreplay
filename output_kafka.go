@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"strings"
 	"time"
 
@@ -22,10 +21,11 @@ type KafkaOutput struct {
 }
 
 // KafkaOutputFrequency in milliseconds
-const KafkaOutputFrequency = 500
+const KafkaOutputFrequency = 100
 
 // NewKafkaOutput creates instance of kafka producer client  with TLS config
 func NewKafkaOutput(address string, config *OutputKafkaConfig, tlsConfig *KafkaTLSConfig) PluginWriter {
+	var err error
 	c := NewKafkaConfig(tlsConfig)
 
 	var producer sarama.AsyncProducer
@@ -36,13 +36,14 @@ func NewKafkaOutput(address string, config *OutputKafkaConfig, tlsConfig *KafkaT
 		c.Producer.RequiredAcks = sarama.WaitForLocal
 		c.Producer.Compression = sarama.CompressionSnappy
 		c.Producer.Flush.Frequency = KafkaOutputFrequency * time.Millisecond
+		c.Producer.Return.Successes = true
 
 		brokerList := strings.Split(config.Host, ",")
 
-		var err error
 		producer, err = sarama.NewAsyncProducer(brokerList, c)
 		if err != nil {
-			log.Fatalln("Failed to start Sarama(Kafka) producer:", err)
+			Debug(0, "Failed to start Sarama(Kafka) producer:", err)
+			return nil
 		}
 	}
 
@@ -53,6 +54,7 @@ func NewKafkaOutput(address string, config *OutputKafkaConfig, tlsConfig *KafkaT
 
 	// Start infinite loop for tracking errors for kafka producer.
 	go o.ErrorHandler()
+	go o.SuccessHandler()
 
 	return o
 }
@@ -61,6 +63,12 @@ func NewKafkaOutput(address string, config *OutputKafkaConfig, tlsConfig *KafkaT
 func (o *KafkaOutput) ErrorHandler() {
 	for err := range o.producer.Errors() {
 		Debug(1, "Failed to write access log entry:", err)
+	}
+}
+
+func (o *KafkaOutput) SuccessHandler() {
+	for suc := range o.producer.Successes() {
+		Debug(2, "Success to write access log entry:", suc)
 	}
 }
 
