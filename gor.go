@@ -177,8 +177,8 @@ func main() {
 
 	log.Printf("[PPID %d and PID %d] Version:%s\n", os.Getppid(), os.Getpid(), VERSION)
 
-	if len(plugins.Inputs) == 0 || len(plugins.Outputs) == 0 {
-		log.Fatal("Required at least 1 input and 1 output")
+	if len(plugins.Inputs) == 0 || len(plugins.Outputs) == 0 || len(plugins.All) < 2 {
+		log.Fatal("Required at least 1 input and 1 output, and 2 all")
 	}
 
 	if *memprofile != "" {
