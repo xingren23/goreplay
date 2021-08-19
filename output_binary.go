@@ -32,7 +32,7 @@ type BinaryOutput struct {
 	config        *BinaryOutputConfig
 	queueStats    *GorStat
 
-	Service       string
+	Service string
 }
 
 // NewBinaryOutput constructor for BinaryOutput
@@ -132,6 +132,9 @@ func (o *BinaryOutput) PluginWrite(msg *Message) (n int, err error) {
 
 // PluginRead reads a message from this plugin
 func (o *BinaryOutput) PluginRead() (*Message, error) {
+	if !o.config.TrackResponses {
+		return nil, ErrorStopped
+	}
 	var resp response
 	var msg Message
 	select {
