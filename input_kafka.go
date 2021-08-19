@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/Shopify/sarama"
@@ -50,7 +51,7 @@ func NewKafkaInput(address string, config *InputKafkaConfig, tlsConfig *KafkaTLS
 	}
 
 	for index, partition := range partitions {
-		consumer, err := con.ConsumePartition(config.Topic, partition, sarama.OffsetOldest)
+		consumer, err := con.ConsumePartition(config.Topic, partition, sarama.OffsetNewest)
 		if err != nil {
 			Debug(0, "Failed to start Sarama(Kafka) partition consumer:", err)
 			return nil
@@ -60,7 +61,7 @@ func NewKafkaInput(address string, config *InputKafkaConfig, tlsConfig *KafkaTLS
 			defer consumer.Close()
 
 			for message := range consumer.Messages() {
-				Debug(2, "Consume ", message)
+				Debug(2, "Consume topic ", message.Topic, "offset ", message.Offset)
 				i.messages <- message
 			}
 		}(consumer)
@@ -119,6 +120,7 @@ func (i *KafkaInput) String() string {
 
 // Close closes this plugin
 func (i *KafkaInput) Close() error {
+	Debug(0, fmt.Sprintf("Close %s", i))
 	close(i.quit)
 	return nil
 }

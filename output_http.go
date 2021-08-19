@@ -189,6 +189,10 @@ func (o *HTTPOutput) PluginWrite(msg *Message) (n int, err error) {
 	}
 
 	if o.config.Stats {
+		// update service
+		if o.queueStats.Service == "" && o.Service != "" {
+			o.queueStats.Service = o.Service
+		}
 		o.queueStats.Write(len(o.queue))
 	}
 	if len(o.queue) > 0 {

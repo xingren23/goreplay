@@ -118,6 +118,10 @@ func (o *TCPOutput) PluginWrite(msg *Message) (n int, err error) {
 	o.buf[bufferIndex] <- msg
 
 	if Settings.OutputTCPStats {
+		// update service
+		if o.bufStats.Service == "" && o.Service != "" {
+			o.bufStats.Service = o.Service
+		}
 		o.bufStats.Write(len(o.buf[bufferIndex]))
 	}
 
