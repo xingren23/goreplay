@@ -1,18 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"runtime"
-	"strconv"
 	"time"
 )
 
 type GorStat struct {
-	statName string
-	rateMs   int
-	latest   int
-	mean     int
-	max      int
-	count    int
+	statName  string
+	startTime int64
+	rateMs    int
+	latest    int
+	mean      float32
+	max       int
+	count     int
+	total     int
+	goroutine int
+
+	Service string
 }
 
 func NewGorStat(statName string, rateMs int) (s *GorStat) {
@@ -23,6 +28,10 @@ func NewGorStat(statName string, rateMs int) (s *GorStat) {
 	s.mean = 0
 	s.max = 0
 	s.count = 0
+	s.total = 0
+	s.startTime = time.Now().Unix()
+
+	s.Service = ""
 
 	if Settings.Stats {
 		go s.reportStats()
@@ -35,30 +44,33 @@ func (s *GorStat) Write(latest int) {
 		if latest > s.max {
 			s.max = latest
 		}
-		if latest != 0 {
-			s.mean = ((s.mean * s.count) + latest) / (s.count + 1)
-		}
 		s.latest = latest
 		s.count = s.count + 1
+		s.total = s.total + latest
+		// update mean
+		if latest != 0 {
+			elapsed := int(time.Now().Unix() - s.startTime)
+			if elapsed > 0 {
+				s.mean = float32(s.total / elapsed)
+			}
+		}
 	}
 }
 
 func (s *GorStat) Reset() {
 	s.latest = 0
-	s.max = 0
-	s.mean = 0
-	s.count = 0
-}
-
-func (s *GorStat) String() string {
-	return s.statName + ":" + strconv.Itoa(s.latest) + "," + strconv.Itoa(s.mean) + "," + strconv.Itoa(s.max) + "," + strconv.Itoa(s.count) + "," + strconv.Itoa(s.count/(s.rateMs/1000.0)) + "," + strconv.Itoa(runtime.NumGoroutine())
+	s.goroutine = 0
 }
 
 func (s *GorStat) reportStats() {
-	Debug(0, "\n", s.statName+":latest,mean,max,count,count/second,gcount")
 	for {
-		Debug(0, "\n", s)
-		s.Reset()
+		// wait for output
 		time.Sleep(time.Duration(s.rateMs) * time.Millisecond)
+
+		// update goroutine num
+		s.goroutine = runtime.NumGoroutine()
+
+		Debug(0, fmt.Sprintf("%#v\n", s))
+		s.Reset()
 	}
 }
