@@ -80,7 +80,7 @@ func (plugins *InOutPlugins) registerPlugin(service string, constructor interfac
 	reflect.ValueOf(plugin).Elem().FieldByName("Service").SetString(service)
 
 	if limit != "" {
-		plugin = NewLimiter(plugin, limit)
+		plugin = NewLimiter(service, plugin, limit)
 	}
 
 	// Some of the output can be Readers as well because return responses

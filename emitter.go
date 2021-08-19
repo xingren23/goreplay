@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -77,18 +76,23 @@ func (e *Emitter) Close() {
 // CopyMulty copies from 1 reader to multiple writers
 func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 	wIndex := 0
-	globalModifier := NewHTTPModifier(&Settings.ModifierConfig)
+	modifier := NewHTTPModifier(&Settings.ModifierConfig)
 	filteredRequests := make(map[string]int64)
 	filteredRequestsLastCleanTime := time.Now().UnixNano()
 	filteredCount := 0
 
+	service := reflect.ValueOf(src).Elem().FieldByName("Service").String()
+
 	// Optimisatio to not check service ID on each write
-	var outServices [][]byte
-	serviceModifiers := make(map[string]*HTTPModifier)
+	var serviceWriters []PluginWriter
 	for _, p := range writers {
-		outServices = append(outServices, []byte(reflect.ValueOf(p).Elem().FieldByName("Service").String()))
+		srv := reflect.ValueOf(p).Elem().FieldByName("Service").String()
+		if srv == service {
+			serviceWriters = append(serviceWriters, p)
+		}
 	}
 
+	serviceModifiers := make(map[string]*HTTPModifier)
 	for s, cfg := range Settings.Services {
 		serviceModifiers[s] = NewHTTPModifier(&cfg.ModifierConfig)
 	}
@@ -97,6 +101,7 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 		msg, err := src.PluginRead()
 		if err != nil {
 			if err == ErrorStopped || err == io.EOF {
+				Debug(0, "Read Error Stopped")
 				return nil
 			}
 			return err
@@ -115,29 +120,20 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 			if Settings.Verbose >= 3 {
 				Debug(3, "[EMITTER] input: ", byteutils.SliceToString(msg.Meta[:len(msg.Meta)-1]), " from: ", src)
 			}
-			if globalModifier != nil {
+
+			if serviceModifier, ok := serviceModifiers[service]; ok {
+				modifier = serviceModifier
+			}
+			if modifier != nil {
 				Debug(3, "[EMITTER] modifier:", requestID, "from:", src)
 				if isRequestPayload(msg.Meta) {
-					msg.Data = globalModifier.Rewrite(msg.Data)
+					msg.Data = modifier.Rewrite(msg.Data)
 					// If modifier tells to skip request
 					if len(msg.Data) == 0 {
 						filteredRequests[requestID] = time.Now().UnixNano()
 						filteredCount++
 						continue
 					}
-
-					if len(meta) > 4 && len(meta[4]) > 0 {
-						if m, found := serviceModifiers[byteutils.SliceToString(meta[4])]; found {
-							msg.Data = m.Rewrite(msg.Data)
-							// If modifier tells to skip request
-							if len(msg.Data) == 0 {
-								filteredRequests[requestID] = time.Now().UnixNano()
-								filteredCount++
-								continue
-							}
-						}
-					}
-
 					Debug(3, "[EMITTER] Rewritten input:", requestID, "from:", src)
 
 				} else {
@@ -157,11 +153,6 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 			}
 
 			if Settings.SplitOutput {
-				writerService := outServices[wIndex]
-				if len(meta) > 4 && len(meta[4]) > 0 && len(writerService) > 0 && !bytes.Equal(meta[4], writerService) {
-					continue
-				}
-
 				if Settings.RecognizeTCPSessions {
 					if !PRO {
 						log.Fatal("Detailed TCP sessions work only with PRO license")
@@ -169,25 +160,20 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 					hasher := fnv.New32a()
 					hasher.Write(meta[1])
 
-					wIndex = int(hasher.Sum32()) % len(writers)
-					if _, err := writers[wIndex].PluginWrite(msg); err != nil {
+					wIndex = int(hasher.Sum32()) % len(serviceWriters)
+					if _, err := serviceWriters[wIndex].PluginWrite(msg); err != nil {
 						return err
 					}
 				} else {
 					// Simple round robin
-					if _, err := writers[wIndex].PluginWrite(msg); err != nil {
+					if _, err := serviceWriters[wIndex].PluginWrite(msg); err != nil {
 						return err
 					}
 
-					wIndex = (wIndex + 1) % len(writers)
+					wIndex = (wIndex + 1) % len(serviceWriters)
 				}
 			} else {
-				for dIdx, dst := range writers {
-					writerService := outServices[dIdx]
-					if len(meta) > 4 && len(meta[4]) > 0 && len(writerService) > 0 && !bytes.Equal(meta[4], writerService) {
-						continue
-					}
-
+				for _, dst := range serviceWriters {
 					if _, err := dst.PluginWrite(msg); err != nil {
 						return err
 					}
