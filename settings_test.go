@@ -30,7 +30,7 @@ services:
       - "Foo: bar"
       - "Bar: foo"
 `)
-	
+
 	Settings = *NewAppSettings()
 	loadConfig(yamlExample)
 	defer func() {
@@ -50,7 +50,7 @@ services:
 			},
 		},
 	}
-	expectedConfig.ServiceSettings.Verbose = 2
+	expectedConfig.Verbose = 2
 	expectedConfig.ServiceSettings.InputRAW = MultiOption{"80"}
 	expectedConfig.ServiceSettings.OutputDummy = MultiOption{"1"}
 

@@ -26,10 +26,11 @@ type TCPOutput struct {
 
 // TCPOutputConfig tcp output configuration
 type TCPOutputConfig struct {
-	Secure     bool `json:"output-tcp-secure"`
-	Sticky     bool `json:"output-tcp-sticky"`
-	SkipVerify bool `json:"output-tcp-skip-verify"`
-	Workers    int  `json:"output-tcp-workers"`
+	Secure         bool `json:"output-tcp-secure"`
+	Sticky         bool `json:"output-tcp-sticky"`
+	SkipVerify     bool `json:"output-tcp-skip-verify"`
+	Workers        int  `json:"output-tcp-workers"`
+	OutputTCPStats bool `json:"output-tcp-stats"`
 }
 
 // NewTCPOutput constructor for TCPOutput
@@ -40,7 +41,7 @@ func NewTCPOutput(address string, config *TCPOutputConfig) PluginWriter {
 	o.address = address
 	o.config = config
 
-	if Settings.OutputTCPStats {
+	if config.OutputTCPStats {
 		o.bufStats = NewGorStat("output_tcp", 5000)
 	}
 
@@ -117,7 +118,7 @@ func (o *TCPOutput) PluginWrite(msg *Message) (n int, err error) {
 	bufferIndex := o.getBufferIndex(msg.Data)
 	o.buf[bufferIndex] <- msg
 
-	if Settings.OutputTCPStats {
+	if Settings.OutputTCPConfig.OutputTCPStats {
 		// update service
 		if o.bufStats.Service == "" && o.Service != "" {
 			o.bufStats.Service = o.Service
