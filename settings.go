@@ -39,11 +39,8 @@ type ServiceSettings struct {
 	InputRAW       MultiOption    `json:"input-raw" mapstructure:"input-raw"`
 	InputRAWConfig RAWInputConfig `mapstructure:",squash"`
 
-	Middleware string `json:"middleware"`
-
-	InputHTTP    MultiOption `json:"input-http" mapstructure:"input-http"`
-	OutputHTTP   MultiOption `json:"output-http" mapstructure:"output-http"`
-	PrettifyHTTP bool        `json:"prettify-http" mapstructure:"prettify-http"`
+	InputHTTP  MultiOption `json:"input-http" mapstructure:"input-http"`
+	OutputHTTP MultiOption `json:"output-http" mapstructure:"output-http"`
 
 	OutputHTTPConfig HTTPOutputConfig `mapstructure:",squash"`
 
@@ -61,7 +58,10 @@ type AppSettings struct {
 	Verbose        int       `json:"verbose"`
 	Stats          bool      `json:"stats"`
 	Pprof          string    `json:"http-pprof"`
-	CopyBufferSize size.Size `json:"input-row-copy-buffer-size"`
+	CopyBufferSize size.Size `json:"copy-buffer-size"`
+	PrettifyHTTP   bool      `json:"prettify-http"`
+
+	Middleware string `json:"middleware"`
 
 	ServiceSettings `mapstructure:",squash"`
 

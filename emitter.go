@@ -105,7 +105,6 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 	for s, cfg := range Settings.Services {
 		if s == service {
 			modifier = NewHTTPModifier(&cfg.ModifierConfig)
-			prettifyHttp = cfg.PrettifyHTTP
 			splitOutput = cfg.SplitOutput
 			recognizeTCPSessions = cfg.RecognizeTCPSessions
 		}
