@@ -82,13 +82,19 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 	filteredCount := 0
 
 	service := reflect.ValueOf(src).Elem().FieldByName("Service").String()
-
-	// Optimisatio to not check service ID on each write
+	// TODO : Optimisatio to not check service ID on each write
+	// global-input write to all output, other input write to the service's output
 	var serviceWriters []PluginWriter
-	for _, p := range writers {
-		srv := reflect.ValueOf(p).Elem().FieldByName("Service").String()
-		if srv == service {
-			serviceWriters = append(serviceWriters, p)
+	if service == globalservice {
+		serviceWriters = writers
+	} else {
+		for _, p := range writers {
+			srv := reflect.ValueOf(p).Elem().FieldByName("Service").String()
+			if srv == globalservice {
+				serviceWriters = append(serviceWriters, p)
+			} else if srv == service {
+				serviceWriters = append(serviceWriters, p)
+			}
 		}
 	}
 

@@ -91,13 +91,15 @@ func TestEmitterFiltered(t *testing.T) {
 	Settings.ModifierConfig = HTTPModifierConfig{}
 }
 
-func TestMultipleServices(t *testing.T) {
+func TestGlobalMultipleServices(t *testing.T) {
 	globalWg := new(sync.WaitGroup)
 
 	globalInput := NewTestInput()
+	globalInput.Service = globalservice
 	globalOutput := NewTestOutput(func(*Message) {
 		globalWg.Done()
 	})
+	globalOutput.Service = globalservice
 
 	service1Input := NewTestInput()
 	service1Input.Service = "foo"
@@ -118,10 +120,22 @@ func TestMultipleServices(t *testing.T) {
 	service2Output.Service = "bar"
 
 	plugins := &InOutPlugins{
-		Inputs:  []PluginReader{globalInput, service1Input, service2Input},
-		Outputs: []PluginWriter{globalOutput, service1Output, service2Output},
+		Inputs: []PluginReader{
+			globalInput,
+			service1Input,
+			service2Input,
+		},
+		Outputs: []PluginWriter{
+			globalOutput,
+			service1Output,
+			service2Output,
+		},
 	}
-	plugins.All = append(plugins.All, globalInput, globalOutput, service1Input, service2Input, service1Output, service2Output)
+	plugins.All = append(plugins.All,
+		globalInput, globalOutput,
+		service1Input, service1Output,
+		service2Input, service2Output,
+	)
 
 	emitter := NewEmitter()
 	go emitter.Start(plugins, Settings.Middleware)

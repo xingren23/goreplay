@@ -26,8 +26,9 @@ import (
 )
 
 var (
-	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-	memprofile = flag.String("memprofile", "", "write memory profile to this file")
+	cpuprofile    = pflag.String("cpuprofile", "", "write cpu profile to file")
+	memprofile    = pflag.String("memprofile", "", "write memory profile to this file")
+	globalservice = "_global_service_"
 )
 
 func init() {
@@ -167,7 +168,7 @@ func main() {
 		// viper.WatchConfig()
 		loadConfig(nil)
 
-		plugins = NewPlugins("", Settings.ServiceSettings, nil)
+		plugins = NewPlugins(globalservice, Settings.ServiceSettings, nil)
 		if len(Settings.Services) > 0 {
 			for service, config := range Settings.Services {
 				NewPlugins(service, config, plugins)

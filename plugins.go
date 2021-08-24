@@ -51,10 +51,6 @@ func extractLimitOptions(options string) (string, string) {
 //
 // See this article if curious about reflect stuff below: http://blog.burntsushi.net/type-parametric-functions-golang
 func (plugins *InOutPlugins) registerPlugin(service string, constructor interface{}, options ...interface{}) error {
-	if service == "" && Settings.Service != "" {
-		service = Settings.Service
-	}
-
 	var path, limit string
 	vc := reflect.ValueOf(constructor)
 
