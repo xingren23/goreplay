@@ -12,7 +12,6 @@ import (
 
 	"github.com/buger/goreplay/capture"
 	"github.com/buger/goreplay/proto"
-	"github.com/buger/goreplay/size"
 	"github.com/buger/goreplay/tcp"
 )
 
@@ -20,7 +19,6 @@ import (
 type RAWInputConfig struct {
 	capture.PcapOptions
 	Expire          time.Duration      `json:"input-raw-expire"`
-	CopyBufferSize  size.Size          `json:"input-row-copy-buffer-size"`
 	Engine          capture.EngineType `json:"input-raw-engine"`
 	TrackResponse   bool               `json:"input-raw-track-response"`
 	Protocol        tcp.TCPProtocol    `json:"input-raw-protocol"`
@@ -72,9 +70,6 @@ func NewRAWInput(address string, config RAWInputConfig) (i *RAWInput) {
 	i.host = host
 	i.ports = ports
 
-	if i.RAWInputConfig.CopyBufferSize < 1 {
-		i.RAWInputConfig.CopyBufferSize = 5242880 // 5mb
-	}
 	if i.RAWInputConfig.Expire <= 0 {
 		i.RAWInputConfig.Expire = time.Second * 2
 	}

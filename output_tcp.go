@@ -118,7 +118,7 @@ func (o *TCPOutput) PluginWrite(msg *Message) (n int, err error) {
 	bufferIndex := o.getBufferIndex(msg.Data)
 	o.buf[bufferIndex] <- msg
 
-	if Settings.OutputTCPConfig.OutputTCPStats {
+	if o.config.OutputTCPStats {
 		// update service
 		if o.bufStats.Service == "" && o.Service != "" {
 			o.bufStats.Service = o.Service

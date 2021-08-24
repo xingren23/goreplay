@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/buger/goreplay/size"
 	"github.com/spf13/pflag"
 	"os"
 	"sync"
@@ -57,9 +58,10 @@ type ServiceSettings struct {
 }
 
 type AppSettings struct {
-	Verbose int    `json:"verbose"`
-	Stats   bool   `json:"stats"`
-	Pprof   string `json:"http-pprof"`
+	Verbose        int       `json:"verbose"`
+	Stats          bool      `json:"stats"`
+	Pprof          string    `json:"http-pprof"`
+	CopyBufferSize size.Size `json:"input-row-copy-buffer-size"`
 
 	ServiceSettings `mapstructure:",squash"`
 
@@ -103,6 +105,7 @@ func init() {
 		"exposing special /debug/pprof endpoint. Example: `:8181`")
 	pflag.IntVar(&Settings.Verbose, "verbose", 0, "set the level of verbosity, if greater than zero then it will turn on debug output")
 	pflag.BoolVar(&Settings.Stats, "stats", false, "Turn on queue stats output")
+	pflag.Var(&Settings.CopyBufferSize, "copy-buffer-size", "Set the buffer size for an individual request (default 5MB)")
 
 	pflag.DurationVar(&Settings.ExitAfter, "exit-after", 5*time.Minute, "exit after specified duration")
 	pflag.BoolVar(&Settings.SplitOutput, "split-output", false, "By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.")
@@ -158,7 +161,7 @@ func init() {
 	pflag.DurationVar(&Settings.InputRAWConfig.Expire, "input-raw-expire", time.Second*2, "How much it should wait for the last TCP packet, till consider that TCP message complete. Default: 2s")
 	pflag.StringVar(&Settings.InputRAWConfig.BPFFilter, "input-raw-bpf-filter", "", "BPF filter to write custom expressions. Can be useful in case of non standard network interfaces like tunneling or SPAN port. Example: --input-raw-bpf-filter 'dst port 80'")
 	pflag.StringVar(&Settings.InputRAWConfig.TimestampType, "input-raw-timestamp-type", "", "Possible values: PCAP_TSTAMP_HOST, PCAP_TSTAMP_HOST_LOWPREC, PCAP_TSTAMP_HOST_HIPREC, PCAP_TSTAMP_ADAPTER, PCAP_TSTAMP_ADAPTER_UNSYNCED. This values not supported on all systems, GoReplay will tell you available values of you put wrong one.")
-	pflag.Var(&Settings.InputRAWConfig.CopyBufferSize, "input-row-copy-buffer-size", "Set the buffer size for an individual request (default 5MB)")
+
 	pflag.BoolVar(&Settings.InputRAWConfig.Snaplen, "input-raw-override-snaplen", false, "Override the capture snaplen to be 64k. Required for some Virtualized environments")
 	pflag.DurationVar(&Settings.InputRAWConfig.BufferTimeout, "input-raw-buffer-timeout", 0, "set the pcap timeout. for immediate mode don't set this pflag")
 	pflag.Var(&Settings.InputRAWConfig.BufferSize, "input-raw-buffer-size", "Controls size of the OS buffer which holds packets until they dispatched. Default value depends by system: in Linux around 2MB. If you see big package drop, increase this value.")
@@ -245,8 +248,8 @@ func checkSettings() {
 	if Settings.OutputFileConfig.OutputFileMaxSize < 1 {
 		Settings.OutputFileConfig.OutputFileMaxSize.Set("1tb")
 	}
-	if Settings.InputRAWConfig.CopyBufferSize < 1 {
-		Settings.InputRAWConfig.CopyBufferSize.Set("5mb")
+	if Settings.CopyBufferSize < 1 {
+		Settings.CopyBufferSize.Set("5mb")
 	}
 }
 

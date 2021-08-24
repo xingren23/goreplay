@@ -25,8 +25,8 @@ func NewEmitter() *Emitter {
 
 // Start initialize loop for sending data from inputs to outputs
 func (e *Emitter) Start(plugins *InOutPlugins, middlewareCmd string) {
-	if Settings.InputRAWConfig.CopyBufferSize < 1 {
-		Settings.InputRAWConfig.CopyBufferSize = 5 << 20
+	if Settings.CopyBufferSize < 1 {
+		Settings.CopyBufferSize = 5 << 20
 	}
 	e.plugins = plugins
 
@@ -77,6 +77,9 @@ func (e *Emitter) Close() {
 func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 	wIndex := 0
 	modifier := NewHTTPModifier(&Settings.ModifierConfig)
+	prettifyHttp := Settings.PrettifyHTTP
+	splitOutput := Settings.SplitOutput
+	recognizeTCPSessions := Settings.RecognizeTCPSessions
 	filteredRequests := make(map[string]int64)
 	filteredRequestsLastCleanTime := time.Now().UnixNano()
 	filteredCount := 0
@@ -98,9 +101,14 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 		}
 	}
 
-	serviceModifiers := make(map[string]*HTTPModifier)
+	// replace with service's config
 	for s, cfg := range Settings.Services {
-		serviceModifiers[s] = NewHTTPModifier(&cfg.ModifierConfig)
+		if s == service {
+			modifier = NewHTTPModifier(&cfg.ModifierConfig)
+			prettifyHttp = cfg.PrettifyHTTP
+			splitOutput = cfg.SplitOutput
+			recognizeTCPSessions = cfg.RecognizeTCPSessions
+		}
 	}
 
 	for {
@@ -113,8 +121,8 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 			return err
 		}
 		if msg != nil && len(msg.Data) > 0 {
-			if len(msg.Data) > int(Settings.InputRAWConfig.CopyBufferSize) {
-				msg.Data = msg.Data[:Settings.InputRAWConfig.CopyBufferSize]
+			if len(msg.Data) > int(Settings.CopyBufferSize) {
+				msg.Data = msg.Data[:Settings.CopyBufferSize]
 			}
 			meta := payloadMeta(msg.Meta)
 			if len(meta) < 3 {
@@ -122,14 +130,8 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 				continue
 			}
 			requestID := byteutils.SliceToString(meta[1])
-			// start a subroutine only when necessary
-			if Settings.Verbose >= 3 {
-				Debug(3, "[EMITTER] input: ", byteutils.SliceToString(msg.Meta[:len(msg.Meta)-1]), " from: ", src)
-			}
+			Debug(3, "[EMITTER] input: ", byteutils.SliceToString(msg.Meta[:len(msg.Meta)-1]), " from: ", src)
 
-			if serviceModifier, ok := serviceModifiers[service]; ok {
-				modifier = serviceModifier
-			}
 			if modifier != nil {
 				Debug(3, "[EMITTER] modifier:", requestID, "from:", src)
 				if isRequestPayload(msg.Meta) {
@@ -151,15 +153,15 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 				}
 			}
 
-			if Settings.PrettifyHTTP {
+			if prettifyHttp {
 				msg.Data = prettifyHTTP(msg.Data)
 				if len(msg.Data) == 0 {
 					continue
 				}
 			}
 
-			if Settings.SplitOutput {
-				if Settings.RecognizeTCPSessions {
+			if splitOutput {
+				if recognizeTCPSessions {
 					if !PRO {
 						log.Fatal("Detailed TCP sessions work only with PRO license")
 					}
