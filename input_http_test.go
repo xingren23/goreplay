@@ -13,10 +13,12 @@ func TestHTTPInput(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
 	input := NewHTTPInput("127.0.0.1:0")
+	input.Service = "test"
 	time.Sleep(time.Millisecond)
 	output := NewTestOutput(func(*Message) {
 		wg.Done()
 	})
+	output.Service = "test"
 
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},
@@ -45,6 +47,7 @@ func TestInputHTTPLargePayload(t *testing.T) {
 	large[n-1] = '0'
 
 	input := NewHTTPInput("127.0.0.1:0")
+	input.Service = "test"
 	output := NewTestOutput(func(msg *Message) {
 		_len := len(msg.Data)
 		if _len >= n { // considering http body CRLF
@@ -52,6 +55,7 @@ func TestInputHTTPLargePayload(t *testing.T) {
 		}
 		wg.Done()
 	})
+	output.Service = "test"
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},

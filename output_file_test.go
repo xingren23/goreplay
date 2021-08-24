@@ -18,7 +18,9 @@ func TestFileOutput(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
 	input := NewTestInput()
-	output := NewFileOutput("/tmp/test_requests.gor", &FileOutputConfig{FlushInterval: time.Minute, Append: true})
+	output := NewFileOutput("/tmp/test_requests.gor", &FileOutputConfig{FlushInterval: time.Minute,
+		Append: true})
+	output.Service = "test"
 
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},
