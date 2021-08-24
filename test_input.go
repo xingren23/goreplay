@@ -23,6 +23,8 @@ func NewTestInput() (i *TestInput) {
 	i = new(TestInput)
 	i.data = make(chan []byte, 100)
 	i.stop = make(chan bool)
+
+	i.Service = "test"
 	return
 }
 

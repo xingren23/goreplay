@@ -14,6 +14,7 @@ func NewTestOutput(cb writeCallback) *TestOutput {
 	i := new(TestOutput)
 	i.cb = cb
 
+	i.Service = "test"
 	return i
 }
 
