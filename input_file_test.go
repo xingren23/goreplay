@@ -18,11 +18,11 @@ func TestInputFileWithGET(t *testing.T) {
 	readPayloads := []*Message{}
 
 	// Given a capture file with a GET request
-	expectedCaptureFile := CreateCaptureFile(rg)
+	expectedCaptureFile := CreateTestCaptureFile(rg)
 	defer expectedCaptureFile.TearDown()
 
 	// When the request is read from the capture file
-	err := ReadFromCaptureFile(expectedCaptureFile.file, 1, func(msg *Message) {
+	err := ReadFromTestCaptureFile(expectedCaptureFile.file, 1, func(msg *Message) {
 		readPayloads = append(readPayloads, msg)
 	})
 
@@ -41,11 +41,11 @@ func TestInputFileWithPayloadLargerThan64Kb(t *testing.T) {
 	readPayloads := []*Message{}
 
 	// Given a capture file with a request over 64Kb
-	expectedCaptureFile := CreateCaptureFile(rg)
+	expectedCaptureFile := CreateTestCaptureFile(rg)
 	defer expectedCaptureFile.TearDown()
 
 	// When the request is read from the capture file
-	err := ReadFromCaptureFile(expectedCaptureFile.file, 1, func(msg *Message) {
+	err := ReadFromTestCaptureFile(expectedCaptureFile.file, 1, func(msg *Message) {
 		readPayloads = append(readPayloads, msg)
 	})
 
@@ -54,9 +54,7 @@ func TestInputFileWithPayloadLargerThan64Kb(t *testing.T) {
 		t.Error(err)
 	} else if !expectedCaptureFile.PayloadsEqual(readPayloads) {
 		t.Error("Request read back from file should match")
-
 	}
-
 }
 
 func TestInputFileWithGETAndPOST(t *testing.T) {
@@ -69,11 +67,11 @@ func TestInputFileWithGETAndPOST(t *testing.T) {
 	readPayloads := []*Message{}
 
 	// Given a capture file with a GET request
-	expectedCaptureFile := CreateCaptureFile(rg)
+	expectedCaptureFile := CreateTestCaptureFile(rg)
 	defer expectedCaptureFile.TearDown()
 
 	// When the requests are read from the capture file
-	err := ReadFromCaptureFile(expectedCaptureFile.file, 2, func(msg *Message) {
+	err := ReadFromTestCaptureFile(expectedCaptureFile.file, 2, func(msg *Message) {
 		readPayloads = append(readPayloads, msg)
 	})
 
@@ -219,7 +217,8 @@ func TestInputFileCompressed(t *testing.T) {
 	name1 := output.file.Name()
 	output.Close()
 
-	output2 := NewFileOutput(fmt.Sprintf("/tmp/%d_1.gz", rnd), &FileOutputConfig{FlushInterval: time.Minute, Append: true})
+	output2 := NewFileOutput(fmt.Sprintf("/tmp/%d_1.gz", rnd), &FileOutputConfig{FlushInterval: time.Minute,
+		Append: true})
 	for i := 0; i < 1000; i++ {
 		output2.PluginWrite(&Message{Meta: []byte("1 1 1\r\n"), Data: []byte("test")})
 	}
@@ -287,7 +286,8 @@ func (expectedCaptureFile *CaptureFile) PayloadsEqual(other []*Message) bool {
 
 }
 
-func CreateCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
+// Service : test
+func CreateTestCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 	f, err := ioutil.TempFile("", "testmainconf")
 	if err != nil {
 		panic(err)
@@ -295,12 +295,14 @@ func CreateCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 
 	readPayloads := []*Message{}
 	output := NewTestOutput(func(msg *Message) {
+		Debug(0, "CreateTestCaptureFile testOutput", msg)
 		readPayloads = append(readPayloads, msg)
 		requestGenerator.wg.Done()
 	})
+	output.Service = "test"
 
 	outputFile := NewFileOutput(f.Name(), &FileOutputConfig{FlushInterval: time.Second, Append: true})
-
+	outputFile.Service = "test"
 	plugins := &InOutPlugins{
 		Inputs:  requestGenerator.inputs,
 		Outputs: []PluginWriter{output, outputFile},
@@ -323,11 +325,14 @@ func CreateCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 
 }
 
-func ReadFromCaptureFile(captureFile *os.File, count int, callback writeCallback) (err error) {
+// Service : test
+func ReadFromTestCaptureFile(captureFile *os.File, count int, callback writeCallback) (err error) {
 	wg := new(sync.WaitGroup)
 
 	input := NewFileInput(captureFile.Name(), false, 100, 0, false)
+	input.Service = "test"
 	output := NewTestOutput(func(msg *Message) {
+		Debug(0, "ReadFromTestCaptureFile testOutput", msg)
 		callback(msg)
 		wg.Done()
 	})

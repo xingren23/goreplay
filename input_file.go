@@ -197,6 +197,7 @@ type FileInput struct {
 	readDepth   int
 	dryRun      bool
 	maxWait     time.Duration
+	Service     string
 
 	stats *expvar.Map
 }
