@@ -50,7 +50,8 @@ func NewRAWInput(address string, config RAWInputConfig) (i *RAWInput) {
 
 	host, _ports, err := net.SplitHostPort(address)
 	if err != nil {
-		log.Fatalf("input-raw: error while parsing address: %s", err)
+		Debug(0, fmt.Sprintf("input-raw: error while parsing address: %s", address), err)
+		return nil
 	}
 
 	var ports []uint16
@@ -74,8 +75,10 @@ func NewRAWInput(address string, config RAWInputConfig) (i *RAWInput) {
 		i.RAWInputConfig.Expire = time.Second * 2
 	}
 
-	i.listen(address)
-
+	if err := i.listen(address); err != nil {
+		Debug(0, "NewRAWInput error, nil")
+		return nil
+	}
 	return
 }
 
@@ -115,16 +118,18 @@ func (i *RAWInput) PluginRead() (*Message, error) {
 	return &msg, nil
 }
 
-func (i *RAWInput) listen(address string) {
+func (i *RAWInput) listen(address string) error {
 	var err error
 	i.listener, err = capture.NewListener(i.host, i.ports, "", i.Engine, i.Protocol, i.TrackResponse, i.Expire, i.AllowIncomplete)
 	if err != nil {
-		log.Fatal(err)
+		Debug(0, "listen err: ", address, err)
+		return err
 	}
 	i.listener.SetPcapOptions(i.PcapOptions)
 	err = i.listener.Activate()
 	if err != nil {
-		log.Fatal(err)
+		Debug(0, "listen err: ", address, err)
+		return err
 	}
 
 	var ctx context.Context
@@ -136,6 +141,7 @@ func (i *RAWInput) listen(address string) {
 		<-errCh // the listener closed voluntarily
 		i.Close()
 	}()
+	return nil
 }
 
 func (i *RAWInput) String() string {

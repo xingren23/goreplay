@@ -36,7 +36,6 @@ func NewKafkaOutput(address string, config *OutputKafkaConfig, tlsConfig *KafkaT
 		c.Producer.RequiredAcks = sarama.WaitForLocal
 		c.Producer.Compression = sarama.CompressionSnappy
 		c.Producer.Flush.Frequency = KafkaOutputFrequency * time.Millisecond
-		c.Producer.Return.Successes = true
 
 		brokerList := strings.Split(config.Host, ",")
 
@@ -54,7 +53,7 @@ func NewKafkaOutput(address string, config *OutputKafkaConfig, tlsConfig *KafkaT
 
 	// Start infinite loop for tracking errors for kafka producer.
 	go o.ErrorHandler()
-	go o.SuccessHandler()
+	//go o.SuccessHandler()
 
 	return o
 }

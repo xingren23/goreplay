@@ -220,8 +220,8 @@ func TestMessageTimeoutReached(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 	p.processPacket(packets[1])
 	m := p.Read()
-	if m.Length != 63<<10 {
-		t.Errorf("expected %d to equal %d", m.Length, 63<<10)
+	if m.Length != 2*(63<<10) {
+		t.Errorf("expected %d to equal %d", m.Length, 2*(63<<10))
 	}
 	if !m.TimedOut {
 		t.Error("expected message to be timeout")

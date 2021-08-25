@@ -28,13 +28,10 @@ type ServiceSettings struct {
 	OutputTCP       MultiOption     `json:"output-tcp" mapstructure:"output-tcp"`
 	OutputTCPConfig TCPOutputConfig `mapstructure:",squash"`
 
-	InputFile          MultiOption      `json:"input-file" mapstructure:"input-file"`
-	InputFileLoop      bool             `json:"input-file-loop" mapstructure:"input-file-loop"`
-	InputFileReadDepth int              `json:"input-file-read-depth" mapstructure:"input-file-read-depth"`
-	InputFileDryRun    bool             `json:"input-file-dry-run" mapstructure:"input-file-dry-run"`
-	InputFileMaxWait   time.Duration    `json:"input-file-max-wait" mapstructure:"input-file-max-wait"`
-	OutputFile         MultiOption      `json:"output-file" mapstructure:"output-file"`
-	OutputFileConfig   FileOutputConfig `mapstructure:",squash"`
+	InputFile        MultiOption      `json:"input-file" mapstructure:"input-file"`
+	InputFileConfig  FileInputConfig  `mapstructure:",squash"`
+	OutputFile       MultiOption      `json:"output-file" mapstructure:"output-file"`
+	OutputFileConfig FileOutputConfig `mapstructure:",squash"`
 
 	InputRAW       MultiOption    `json:"input-raw" mapstructure:"input-raw"`
 	InputRAWConfig RAWInputConfig `mapstructure:",squash"`
@@ -133,11 +130,14 @@ func init() {
 
 	pflag.StringSlice("input-file", Settings.InputFile, "Read requests from file: \n\tgor --input-file ./requests."+
 		"gor --output-http staging.com")
-	pflag.BoolVar(&Settings.InputFileLoop, "input-file-loop", false, "Loop input files, useful for performance testing.")
-	pflag.IntVar(&Settings.InputFileReadDepth, "input-file-read-depth", 100,
+	pflag.BoolVar(&Settings.InputFileConfig.InputFileLoop, "input-file-loop", false, "Loop input files, "+
+		"useful for performance testing.")
+	pflag.IntVar(&Settings.InputFileConfig.InputFileReadDepth, "input-file-read-depth", 100,
 		"GoReplay tries to read and cache multiple records, in advance. In parallel it also perform sorting of requests, if they came out of order. Since it needs hold this buffer in memory, bigger values can cause worse performance")
-	pflag.BoolVar(&Settings.InputFileDryRun, "input-file-dry-run", false, "Simulate reading from the data source without replaying it. You will get information about expected replay time, number of found records etc.")
-	pflag.DurationVar(&Settings.InputFileMaxWait, "input-file-max-wait", 0, "Set the maximum time between requests. Can help in situations when you have too long periods between request, and you want to skip them. Example: --input-raw-max-wait 1s")
+	pflag.BoolVar(&Settings.InputFileConfig.InputFileDryRun, "input-file-dry-run", false,
+		"Simulate reading from the data source without replaying it. You will get information about expected replay time, number of found records etc.")
+	pflag.DurationVar(&Settings.InputFileConfig.InputFileMaxWait, "input-file-max-wait", 0,
+		"Set the maximum time between requests. Can help in situations when you have too long periods between request, and you want to skip them. Example: --input-raw-max-wait 1s")
 
 	pflag.StringSlice("output-file", Settings.OutputFile,
 		"Write incoming requests to file: \n\tgor --input-raw :80 --output-file ./requests.gor")
@@ -238,7 +238,6 @@ func init() {
 
 	// default values, using for tests
 	checkSettings()
-
 }
 
 func checkSettings() {

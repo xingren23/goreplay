@@ -128,7 +128,7 @@ func NewPlugins(service string, config ServiceSettings, plugins *InOutPlugins) *
 	}
 
 	for _, options := range config.InputFile {
-		plugins.registerPlugin(service, NewFileInput, options, config.InputFileLoop)
+		plugins.registerPlugin(service, NewFileInput, options, &config.InputFileConfig)
 	}
 
 	for _, path := range config.OutputFile {

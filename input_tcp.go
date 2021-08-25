@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"net"
 )
 
@@ -18,7 +17,7 @@ type TCPInput struct {
 	config   *TCPInputConfig
 	stop     chan bool // Channel used only to indicate goroutine should shutdown
 
-	Service  string
+	Service string
 }
 
 // TCPInputConfig represents configuration of a TCP input plugin
@@ -36,7 +35,10 @@ func NewTCPInput(address string, config *TCPInputConfig) (i *TCPInput) {
 	i.config = config
 	i.stop = make(chan bool)
 
-	i.listen(address)
+	if err := i.listen(address); err != nil {
+		Debug(0, "NewTCPInput nil", err)
+		return nil
+	}
 
 	return
 }
@@ -59,23 +61,26 @@ func (i *TCPInput) Close() error {
 	return nil
 }
 
-func (i *TCPInput) listen(address string) {
+func (i *TCPInput) listen(address string) error {
 	if i.config.Secure {
 		cer, err := tls.LoadX509KeyPair(i.config.CertificatePath, i.config.KeyPath)
 		if err != nil {
-			log.Fatalln("error while loading --input-tcp TLS certificate:", err)
+			Debug(0, "error while loading --input-tcp TLS certificate:", err)
+			return err
 		}
 
 		config := &tls.Config{Certificates: []tls.Certificate{cer}}
 		listener, err := tls.Listen("tcp", address, config)
 		if err != nil {
-			log.Fatalln("[INPUT-TCP] failed to start INPUT-TCP listener:", err)
+			Debug(0, "[INPUT-TCP] failed to start INPUT-TCP listener:", err)
+			return err
 		}
 		i.listener = listener
 	} else {
 		listener, err := net.Listen("tcp", address)
 		if err != nil {
-			log.Fatalln("failed to start INPUT-TCP listener:", err)
+			Debug(0, "failed to start INPUT-TCP listener:", err)
+			return err
 		}
 		i.listener = listener
 	}
@@ -95,6 +100,7 @@ func (i *TCPInput) listen(address string) {
 			break
 		}
 	}()
+	return nil
 }
 
 var payloadSeparatorAsBytes = []byte(payloadSeparator)

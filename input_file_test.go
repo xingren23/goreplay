@@ -102,7 +102,7 @@ func TestInputFileMultipleFilesWithRequestsOnly(t *testing.T) {
 	file2.Write([]byte(payloadSeparator))
 	file2.Close()
 
-	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd), false, 100, 0, false)
+	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd), &FileInputConfig{false, 100, false, 0})
 
 	for i := '1'; i <= '4'; i++ {
 		msg, _ := input.PluginRead()
@@ -128,7 +128,7 @@ func TestInputFileRequestsWithLatency(t *testing.T) {
 	file.Write([]byte("1 3 250000000\nrequest3"))
 	file.Write([]byte(payloadSeparator))
 
-	input := NewFileInput(fmt.Sprintf("/tmp/%d", rnd), false, 100, 0, false)
+	input := NewFileInput(fmt.Sprintf("/tmp/%d", rnd), &FileInputConfig{false, 100, false, 0})
 
 	start := time.Now().UnixNano()
 	for i := 0; i < 3; i++ {
@@ -168,7 +168,7 @@ func TestInputFileMultipleFilesWithRequestsAndResponses(t *testing.T) {
 	file2.Write([]byte(payloadSeparator))
 	file2.Close()
 
-	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd), false, 100, 0, false)
+	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd), &FileInputConfig{false, 100, false, 0})
 
 	for i := '1'; i <= '4'; i++ {
 		msg, _ := input.PluginRead()
@@ -196,7 +196,7 @@ func TestInputFileLoop(t *testing.T) {
 	file.Write([]byte(payloadSeparator))
 	file.Close()
 
-	input := NewFileInput(fmt.Sprintf("/tmp/%d", rnd), true, 100, 0, false)
+	input := NewFileInput(fmt.Sprintf("/tmp/%d", rnd), &FileInputConfig{true, 100, false, 0})
 
 	// Even if we have just 2 requests in file, it should indifinitly loop
 	for i := 0; i < 1000; i++ {
@@ -225,7 +225,7 @@ func TestInputFileCompressed(t *testing.T) {
 	name2 := output2.file.Name()
 	output2.Close()
 
-	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd), false, 100, 0, false)
+	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd), &FileInputConfig{false, 100, false, 0})
 	for i := 0; i < 2000; i++ {
 		input.PluginRead()
 	}
@@ -329,7 +329,7 @@ func CreateTestCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 func ReadFromTestCaptureFile(captureFile *os.File, count int, callback writeCallback) (err error) {
 	wg := new(sync.WaitGroup)
 
-	input := NewFileInput(captureFile.Name(), false, 100, 0, false)
+	input := NewFileInput(captureFile.Name(), &FileInputConfig{false, 100, false, 0})
 	input.Service = "test"
 	output := NewTestOutput(func(msg *Message) {
 		Debug(0, "ReadFromTestCaptureFile testOutput", msg)

@@ -208,7 +208,8 @@ func (o *FileOutput) filename() string {
 
 				if nextChunk {
 					fileIndex++
-					o.currentFileSize = 0
+					// To maintain the idempotency of the method, don't reset currentFileSize,
+					//o.currentFileSize = 0
 				}
 			}
 

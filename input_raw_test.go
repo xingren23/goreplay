@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"github.com/buger/goreplay/proto"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
 	"os/exec"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -15,7 +17,6 @@ import (
 	"time"
 
 	"github.com/buger/goreplay/capture"
-	"github.com/buger/goreplay/proto"
 	"github.com/buger/goreplay/tcp"
 )
 
@@ -49,7 +50,10 @@ func TestRAWInputIPv4(t *testing.T) {
 		RealIPHeader:  "X-Real-IP",
 	}
 	input := NewRAWInput(listener.Addr().String(), conf)
-
+	if input == nil {
+		t.Error("NewRAWInput is nil", ":"+port)
+		return
+	}
 	output := NewTestOutput(func(msg *Message) {
 		if msg.Meta[0] == '1' {
 			if len(proto.Header(msg.Data, []byte("X-Real-IP"))) == 0 {
@@ -118,6 +122,10 @@ func TestRAWInputNoKeepAlive(t *testing.T) {
 		TrackResponse: true,
 	}
 	input := NewRAWInput(":"+port, conf)
+	if input == nil {
+		t.Error("NewRAWInput is nil", ":"+port)
+		return
+	}
 	var respCounter, reqCounter int64
 	output := NewTestOutput(func(msg *Message) {
 		if msg.Meta[0] == '1' {
@@ -183,7 +191,10 @@ func TestRAWInputIPv6(t *testing.T) {
 		TrackResponse: true,
 	}
 	input := NewRAWInput(originAddr, conf)
-
+	if input == nil {
+		t.Error("NewRAWInput is nil", originAddr)
+		return
+	}
 	output := NewTestOutput(func(msg *Message) {
 		if msg.Meta[0] == '1' {
 			atomic.AddInt64(&reqCounter, 1)
@@ -241,7 +252,11 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 		AllowIncomplete: true,
 	}
 	input := NewRAWInput(originAddr, conf)
-
+	if input == nil {
+		t.Error("NewRAWInput is nil", originAddr)
+		return
+	}
+	input.Service = "test"
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		body, _ := ioutil.ReadAll(r.Body)
@@ -256,7 +271,11 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	defer replay.Close()
 
 	httpOutput := NewHTTPOutput(replay.URL, &HTTPOutputConfig{})
-
+	if reflect.ValueOf(httpOutput).IsNil() {
+		t.Errorf("Construct service %s plugin failed", replay.URL)
+		return
+	}
+	reflect.ValueOf(httpOutput).Elem().FieldByName("Service").SetString("test")
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{httpOutput},
@@ -320,6 +339,9 @@ func BenchmarkRAWInputWithReplay(b *testing.B) {
 		TrackResponse: true,
 	}
 	input := NewRAWInput(originAddr, conf)
+	if input == nil {
+		b.Error("NewRAWInput is nil", originAddr)
+	}
 
 	testOutput := NewTestOutput(func(msg *Message) {
 		if msg.Meta[0] == '1' {
@@ -330,7 +352,11 @@ func BenchmarkRAWInputWithReplay(b *testing.B) {
 		wg.Done()
 	})
 	httpOutput := NewHTTPOutput("http://"+replayAddr, &HTTPOutputConfig{})
-
+	if reflect.ValueOf(httpOutput).IsNil() {
+		b.Errorf("Construct service %s plugin failed", replayAddr)
+		return
+	}
+	reflect.ValueOf(httpOutput).Elem().FieldByName("Service").SetString("test")
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{testOutput, httpOutput},

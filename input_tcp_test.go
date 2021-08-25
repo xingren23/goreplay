@@ -20,7 +20,13 @@ import (
 func TestTCPInput(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
-	input := NewTCPInput("127.0.0.1:0", &TCPInputConfig{})
+	address := "127.0.0.1:0"
+	input := NewTCPInput(address, &TCPInputConfig{})
+	if input == nil {
+		t.Error("NewTCPInput nil", address)
+		return
+	}
+	input.Service = "test"
 	output := NewTestOutput(func(*Message) {
 		wg.Done()
 	})
@@ -101,11 +107,17 @@ func TestTCPInputSecure(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
 
-	input := NewTCPInput("127.0.0.1:0", &TCPInputConfig{
+	address := "127.0.0.1:0"
+	input := NewTCPInput(address, &TCPInputConfig{
 		Secure:          true,
 		CertificatePath: serverCertPemFile.Name(),
 		KeyPath:         serverPrivPemFile.Name(),
 	})
+	if input == nil {
+		t.Error("NewTCPInput nil", address)
+		return
+	}
+	input.Service = "test"
 	output := NewTestOutput(func(*Message) {
 		wg.Done()
 	})

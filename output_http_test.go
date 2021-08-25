@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	_ "net/http/httputil"
+	"reflect"
 	"sync"
 	"testing"
 )
@@ -41,6 +42,12 @@ func TestHTTPOutput(t *testing.T) {
 	Settings.ModifierConfig = HTTPModifierConfig{Headers: headers, Methods: methods}
 
 	httpOutput := NewHTTPOutput(server.URL, &HTTPOutputConfig{TrackResponses: false})
+	if reflect.ValueOf(httpOutput).IsNil() {
+		t.Errorf("Construct service %s plugin failed", server.URL)
+		return
+	}
+	reflect.ValueOf(httpOutput).Elem().FieldByName("Service").SetString("test")
+
 	output := NewTestOutput(func(*Message) {
 		wg.Done()
 	})
@@ -86,6 +93,11 @@ func TestHTTPOutputKeepOriginalHost(t *testing.T) {
 	Settings.ModifierConfig = HTTPModifierConfig{Headers: headers}
 
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{OriginalHost: true, SkipVerify: true})
+	if reflect.ValueOf(output).IsNil() {
+		t.Errorf("Construct service %s plugin failed", server.URL)
+		return
+	}
+	reflect.ValueOf(output).Elem().FieldByName("Service").SetString("test")
 
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},
@@ -114,6 +126,11 @@ func TestHTTPOutputSSL(t *testing.T) {
 
 	input := NewTestInput()
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{SkipVerify: true})
+	if reflect.ValueOf(output).IsNil() {
+		t.Errorf("Construct service %s plugin failed", server.URL)
+		return
+	}
+	reflect.ValueOf(output).Elem().FieldByName("Service").SetString("test")
 
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},
@@ -147,6 +164,11 @@ func TestHTTPOutputSessions(t *testing.T) {
 	Settings.RecognizeTCPSessions = true
 	Settings.SplitOutput = true
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{})
+	if reflect.ValueOf(output).IsNil() {
+		t.Errorf("Construct service %s plugin failed", server.URL)
+		return
+	}
+	reflect.ValueOf(output).Elem().FieldByName("Service").SetString("test")
 
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},
@@ -189,7 +211,11 @@ func BenchmarkHTTPOutput(b *testing.B) {
 
 	input := NewTestInput()
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{WorkersMax: 1})
-
+	if reflect.ValueOf(output).IsNil() {
+		b.Errorf("Construct service %s plugin failed", server.URL)
+		return
+	}
+	reflect.ValueOf(output).Elem().FieldByName("Service").SetString("test")
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
@@ -218,6 +244,11 @@ func BenchmarkHTTPOutputTLS(b *testing.B) {
 
 	input := NewTestInput()
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{SkipVerify: true, WorkersMax: 1})
+	if reflect.ValueOf(output).IsNil() {
+		b.Errorf("Construct service %s plugin failed", server.URL)
+		return
+	}
+	reflect.ValueOf(output).Elem().FieldByName("Service").SetString("test")
 
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},

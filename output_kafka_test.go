@@ -43,11 +43,12 @@ func TestOutputKafkaJSON(t *testing.T) {
 	output := NewKafkaOutput("", &OutputKafkaConfig{
 		producer: producer,
 		Topic:    "test",
-		UseJSON:  false,
+		UseJSON:  true,
 	}, nil)
 
 	if output == nil {
 		t.Error("New Kafka Output Failed")
+		return
 	}
 
 	output.PluginWrite(&Message{Meta: []byte("1 2 3\n"), Data: []byte("GET / HTTP1.1\r\nHeader: 1\r\n\r\n")})

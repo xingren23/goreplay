@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"log"
 	"net"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -17,6 +18,11 @@ func TestTCPOutput(t *testing.T) {
 	})
 	input := NewTestInput()
 	output := NewTCPOutput(listener.Addr().String(), &TCPOutputConfig{Workers: 10})
+	if reflect.ValueOf(output).IsNil() {
+		t.Errorf("Construct service %s plugin failed", listener.Addr().String())
+		return
+	}
+	reflect.ValueOf(output).Elem().FieldByName("Service").SetString("test")
 
 	plugins := &InOutPlugins{
 		Inputs:  []PluginReader{input},
