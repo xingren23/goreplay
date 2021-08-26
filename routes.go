@@ -20,7 +20,8 @@ func Config(r *gin.Engine) {
 }
 
 func stats(c *gin.Context) {
-	c.String(200, "pong")
+	stats := AppEmitter.GetStats()
+	renderData(c, stats, nil)
 }
 
 /**
@@ -43,8 +44,6 @@ type ServiceObj struct {
 func createService(c *gin.Context) {
 	var serviceObj ServiceObj
 	errors.Dangerous(c.ShouldBind(&serviceObj))
-
-	renderData(c, serviceObj, nil)
 
 	appPlugins := NewPlugins(serviceObj.Service, serviceObj.Params, nil)
 	err := AppEmitter.AddService(serviceObj.Service, appPlugins.Services[serviceObj.Service])

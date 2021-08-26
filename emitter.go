@@ -121,7 +121,7 @@ func (e *Emitter) CancelService(service string) error {
 		return fmt.Errorf("emitter AppPlugins is nil, please start emitter first")
 	}
 	// TODO: incompatible with global
-	if e.AppPlugins.GlobalService != nil || (e.AppPlugins.GlobalService != nil && e.AppPlugins.GlobalService.Inputs != nil &&
+	if service == globalservice || (e.AppPlugins.GlobalService != nil && e.AppPlugins.GlobalService.Inputs != nil &&
 		len(e.AppPlugins.GlobalService.Inputs) > 0) {
 		return fmt.Errorf("emitter AddService incompatible with globalService, service %s", service)
 	}
@@ -146,7 +146,7 @@ func (e *Emitter) CancelService(service string) error {
 // Get stats
 func (e *Emitter) GetStats() map[string]string {
 	stats := make(map[string]string)
-	if e.AppPlugins.GlobalService != nil {
+	if e.AppPlugins.GlobalService != nil && e.AppPlugins.GlobalService.Inputs != nil {
 		closed := e.AppPlugins.GlobalService.IsClosed()
 		if closed {
 			stats[globalservice] = "closed"
