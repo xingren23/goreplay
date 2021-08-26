@@ -108,8 +108,16 @@ func (l *Limiter) String() string {
 
 // Close closes the resources.
 func (l *Limiter) Close() error {
-	if fi, ok := l.plugin.(io.Closer); ok {
+	if fi, ok := l.plugin.(PluginReader); ok {
 		fi.Close()
 	}
 	return nil
+}
+
+// Check closed
+func (l *Limiter) IsClosed() bool {
+	if fi, ok := l.plugin.(PluginReader); ok {
+		return fi.IsClosed()
+	}
+	return false
 }

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -52,6 +53,7 @@ type HTTPOutputConfig struct {
 // By default workers pool is dynamic and starts with 1 worker or workerMin workers
 // You can specify maximum number of workers using `--output-http-workers`
 type HTTPOutput struct {
+	sync.Mutex
 	activeWorkers int32
 	config        *HTTPOutputConfig
 	queueStats    *GorStat
@@ -61,8 +63,8 @@ type HTTPOutput struct {
 	queue         chan *Message
 	responses     chan *response
 	stop          chan bool // Channel used only to indicate goroutine should shutdown
-
-	Service string
+	closed        bool
+	Service       string
 }
 
 // NewHTTPOutput constructor for HTTPOutput
@@ -114,6 +116,7 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) PluginReadWriter {
 
 	o.config = config
 	o.stop = make(chan bool)
+	o.closed = false
 	if o.config.Stats {
 		o.queueStats = NewGorStat("output_http", o.config.StatsMs)
 	}
@@ -189,10 +192,6 @@ func (o *HTTPOutput) PluginWrite(msg *Message) (n int, err error) {
 	}
 
 	if o.config.Stats {
-		// update service
-		if o.queueStats.Service == "" && o.Service != "" {
-			o.queueStats.Service = o.Service
-		}
 		o.queueStats.Write(len(o.queue))
 	}
 	if len(o.queue) > 0 {
@@ -257,9 +256,19 @@ func (o *HTTPOutput) String() string {
 
 // Close closes the data channel so that data
 func (o *HTTPOutput) Close() error {
-	close(o.stop)
-	close(o.stopWorker)
+	o.Lock()
+	o.Unlock()
+	if !o.closed {
+		close(o.stop)
+		close(o.stopWorker)
+		o.closed = true
+	}
 	return nil
+}
+
+// Check isclosed
+func (i *HTTPOutput) IsClosed() bool {
+	return i.closed
 }
 
 // HTTPClient holds configurations for a single HTTP client

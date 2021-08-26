@@ -16,8 +16,6 @@ type GorStat struct {
 	count     int
 	total     int
 	goroutine int
-
-	Service string
 }
 
 func NewGorStat(statName string, rateMs int) (s *GorStat) {
@@ -30,8 +28,6 @@ func NewGorStat(statName string, rateMs int) (s *GorStat) {
 	s.count = 0
 	s.total = 0
 	s.startTime = time.Now().Unix()
-
-	s.Service = ""
 
 	if Settings.Stats {
 		go s.reportStats()

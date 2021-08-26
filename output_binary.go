@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -20,6 +21,7 @@ type BinaryOutputConfig struct {
 // By default workers pool is dynamic and starts with 10 workers
 // You can specify fixed number of workers using `--output-tcp-workers`
 type BinaryOutput struct {
+	sync.Mutex
 	// Keep this as first element of struct because it guarantees 64bit
 	// alignment. atomic.* functions crash on 32bit machines if operand is not
 	// aligned at 64bit. See https://github.com/golang/go/issues/599
@@ -31,6 +33,7 @@ type BinaryOutput struct {
 	quit          chan struct{}
 	config        *BinaryOutputConfig
 	queueStats    *GorStat
+	closed        bool
 
 	Service string
 }
@@ -47,6 +50,7 @@ func NewBinaryOutput(address string, config *BinaryOutputConfig) PluginReadWrite
 	o.responses = make(chan response, 1000)
 	o.needWorker = make(chan int, 1)
 	o.quit = make(chan struct{})
+	o.closed = false
 
 	// Initial workers count
 	if o.config.Workers == 0 {
@@ -174,6 +178,16 @@ func (o *BinaryOutput) String() string {
 
 // Close closes this plugin for reading
 func (o *BinaryOutput) Close() error {
-	close(o.quit)
+	o.Lock()
+	o.Unlock()
+	if !o.closed {
+		close(o.quit)
+		o.closed = true
+	}
 	return nil
+}
+
+// Check isclosed
+func (i *BinaryOutput) IsClosed() bool {
+	return i.closed
 }

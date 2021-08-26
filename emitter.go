@@ -137,44 +137,46 @@ func (e *Emitter) CancelService(service string) error {
 				cp.Close()
 			}
 		}
-		delete(e.AppPlugins.Services, service)
+	} else {
+		return fmt.Errorf("service %s not exist", service)
 	}
 	return nil
+}
+
+// Get stats
+func (e *Emitter) GetStats() map[string]string {
+	stats := make(map[string]string)
+	if e.AppPlugins.GlobalService != nil {
+		closed := e.AppPlugins.GlobalService.IsClosed()
+		if closed {
+			stats[globalservice] = "closed"
+		} else {
+			stats[globalservice] = "normal"
+		}
+	}
+	for s, plugins := range e.AppPlugins.Services {
+		closed := plugins.IsClosed()
+		if closed {
+			stats[s] = "closed"
+		} else {
+			stats[s] = "normal"
+		}
+	}
+	return stats
 }
 
 // Close closes All the goroutine and waits for it to finish.
 func (e *Emitter) Close() {
 	for _, plugins := range e.AppPlugins.Services {
-		for _, p := range plugins.Inputs {
-			if cp, ok := p.(io.Closer); ok {
-				cp.Close()
-			}
-		}
-		for _, p := range plugins.Outputs {
-			if cp, ok := p.(io.Closer); ok {
-				cp.Close()
-			}
-		}
+		plugins.Close()
 	}
+	e.AppPlugins.Services = make(map[string]*InOutPlugins)
 
 	if e.AppPlugins.GlobalService != nil {
-		for _, p := range e.AppPlugins.GlobalService.Inputs {
-			if cp, ok := p.(io.Closer); ok {
-				cp.Close()
-			}
-		}
-		for _, p := range e.AppPlugins.GlobalService.Outputs {
-			if cp, ok := p.(io.Closer); ok {
-				cp.Close()
-			}
-		}
+		e.AppPlugins.GlobalService.Close()
+		e.AppPlugins.GlobalService = nil
 	}
 	e.Wait()
-	//if len(e.AppPlugins.All) > 0 {
-	//	// wait for everything to stop
-	//
-	//}
-	//e.AppPlugins.All = nil // avoid Close to make changes again
 }
 
 // CopyMulty copies from 1 reader to multiple writers

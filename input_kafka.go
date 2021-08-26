@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/Shopify/sarama"
 	"github.com/Shopify/sarama/mocks"
@@ -12,10 +13,12 @@ import (
 // KafkaInput is used for receiving Kafka messages and
 // transforming them into HTTP payloads.
 type KafkaInput struct {
+	sync.Mutex
 	config    *InputKafkaConfig
 	consumers []sarama.PartitionConsumer
 	messages  chan *sarama.ConsumerMessage
 	quit      chan struct{}
+	closed    bool
 	Service   string
 }
 
@@ -48,6 +51,7 @@ func NewKafkaInput(address string, config *InputKafkaConfig, tlsConfig *KafkaTLS
 		consumers: make([]sarama.PartitionConsumer, len(partitions)),
 		messages:  make(chan *sarama.ConsumerMessage, 256),
 		quit:      make(chan struct{}),
+		closed:    false,
 	}
 
 	for index, partition := range partitions {
@@ -120,7 +124,17 @@ func (i *KafkaInput) String() string {
 
 // Close closes this plugin
 func (i *KafkaInput) Close() error {
+	i.Lock()
+	defer i.Unlock()
 	Debug(0, fmt.Sprintf("Close %s", i))
-	close(i.quit)
+	if !i.closed {
+		close(i.quit)
+		i.closed = true
+	}
 	return nil
+}
+
+// Check isclosed
+func (i *KafkaInput) IsClosed() bool {
+	return i.closed
 }

@@ -1,13 +1,16 @@
 package main
 
 import (
+	"sync"
 	"time"
 )
 
 // DummyInput used for debugging. It generate 1 "GET /"" request per second.
 type DummyInput struct {
+	sync.Mutex
 	data    chan []byte
 	quit    chan struct{}
+	closed  bool
 	Service string
 }
 
@@ -16,6 +19,7 @@ func NewDummyInput(options string) (di *DummyInput) {
 	di = new(DummyInput)
 	di.data = make(chan []byte)
 	di.quit = make(chan struct{})
+	di.closed = false
 
 	go di.emit()
 
@@ -56,6 +60,16 @@ func (i *DummyInput) String() string {
 
 // Close closes this plugins
 func (i *DummyInput) Close() error {
-	close(i.quit)
+	i.Lock()
+	defer i.Unlock()
+	if !i.closed {
+		close(i.quit)
+		i.closed = true
+	}
 	return nil
+}
+
+// Check isclosed
+func (i *DummyInput) IsClosed() bool {
+	return i.closed
 }

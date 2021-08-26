@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -12,9 +13,11 @@ var ErrorStopped = errors.New("reading stopped")
 
 // TestInput used for testing purpose, it allows emitting requests on demand
 type TestInput struct {
+	sync.Mutex
 	data       chan []byte
 	skipHeader bool
 	stop       chan bool // Channel used only to indicate goroutine should shutdown
+	closed     bool
 	Service    string
 }
 
@@ -23,6 +26,7 @@ func NewTestInput() (i *TestInput) {
 	i = new(TestInput)
 	i.data = make(chan []byte, 100)
 	i.stop = make(chan bool)
+	i.closed = false
 
 	i.Service = "test"
 	return
@@ -48,8 +52,18 @@ func (i *TestInput) PluginRead() (*Message, error) {
 
 // Close closes this plugin
 func (i *TestInput) Close() error {
-	close(i.stop)
+	i.Lock()
+	defer i.Unlock()
+	if !i.closed {
+		close(i.stop)
+		i.closed = true
+	}
 	return nil
+}
+
+// Check isclosed
+func (i *TestInput) IsClosed() bool {
+	return i.closed
 }
 
 // EmitBytes sends data

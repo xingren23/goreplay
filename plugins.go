@@ -16,6 +16,7 @@ type Message struct {
 type PluginReader interface {
 	PluginRead() (msg *Message, err error)
 	Close() error
+	IsClosed() bool
 }
 
 // PluginWriter is an interface for output plugins
@@ -50,6 +51,45 @@ func extractLimitOptions(options string) (string, string) {
 	}
 
 	return split[0], ""
+}
+
+func (inout *InOutPlugins) IsClosed() bool {
+	closed := true
+	for _, p := range inout.Inputs {
+		if cp, ok := p.(PluginReader); ok {
+			if !cp.IsClosed() {
+				closed = false
+			}
+		}
+	}
+	for _, p := range inout.Outputs {
+		if cp, ok := p.(PluginReader); ok {
+			if !cp.IsClosed() {
+				closed = false
+			}
+		}
+	}
+
+	return closed
+}
+
+func (inout *InOutPlugins) Close() error {
+	var err error
+	for _, p := range inout.Inputs {
+		if cp, ok := p.(PluginReader); ok {
+			if e := cp.Close(); e != nil {
+				err = e
+			}
+		}
+	}
+	for _, p := range inout.Outputs {
+		if cp, ok := p.(PluginReader); ok {
+			if e := cp.Close(); e != nil {
+				err = e
+			}
+		}
+	}
+	return err
 }
 
 // Automatically detects type of plugin and initialize it
@@ -89,6 +129,10 @@ func (plugins *AppPlugins) registerPlugin(service string, constructor interface{
 		if service == globalservice {
 			plugins.GlobalService.Inputs = append(plugins.GlobalService.Inputs, r)
 		} else {
+			if _, ok := plugins.Services[service]; !ok {
+				plugins.Services[service] = &InOutPlugins{Inputs: make([]PluginReader, 0),
+					Outputs: make([]PluginWriter, 0)}
+			}
 			plugins.Services[service].Inputs = append(plugins.Services[service].Inputs, r)
 		}
 	}
@@ -97,6 +141,10 @@ func (plugins *AppPlugins) registerPlugin(service string, constructor interface{
 		if service == globalservice {
 			plugins.GlobalService.Outputs = append(plugins.GlobalService.Outputs, w)
 		} else {
+			if _, ok := plugins.Services[service]; !ok {
+				plugins.Services[service] = &InOutPlugins{Inputs: make([]PluginReader, 0),
+					Outputs: make([]PluginWriter, 0)}
+			}
 			plugins.Services[service].Outputs = append(plugins.Services[service].Outputs, w)
 		}
 	}

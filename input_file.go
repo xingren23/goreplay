@@ -205,6 +205,7 @@ type FileInput struct {
 	dryRun      bool
 	maxWait     time.Duration
 	Service     string
+	closed      bool
 
 	stats *expvar.Map
 }
@@ -221,6 +222,7 @@ func NewFileInput(path string, config *FileInputConfig) (i *FileInput) {
 	i.stats = expvar.NewMap("file-" + path)
 	i.dryRun = config.InputFileDryRun
 	i.maxWait = config.InputFileMaxWait
+	i.closed = false
 
 	if err := i.init(); err != nil {
 		return
@@ -423,11 +425,17 @@ func (i *FileInput) emit() {
 func (i *FileInput) Close() error {
 	defer i.mu.Unlock()
 	i.mu.Lock()
-
-	close(i.exit)
-	for _, r := range i.readers {
-		r.Close()
+	if !i.closed {
+		close(i.exit)
+		for _, r := range i.readers {
+			r.Close()
+		}
+		i.closed = true
 	}
-
 	return nil
+}
+
+// Check isclosed
+func (i *FileInput) IsClosed() bool {
+	return i.closed
 }

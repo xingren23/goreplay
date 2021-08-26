@@ -128,9 +128,16 @@ func TestEmitterCancelService(t *testing.T) {
 		t.Errorf("cancel service failed, %v", err)
 		return
 	}
-	if _, ok := emitter.AppPlugins.Services["test"]; ok {
-		t.Errorf("canceled service existed")
-		return
+	if _, ok := emitter.AppPlugins.Services["test"]; !ok {
+		t.Errorf("canceled service not existed")
+	}
+
+	stats := emitter.GetStats()
+	if s, ok := stats["test"]; ok {
+		if s != "closed" {
+			t.Errorf("cancaled service stat failed")
+			return
+		}
 	}
 	emitter.Close()
 }
@@ -158,7 +165,7 @@ func TestEmitterFiltered(t *testing.T) {
 	methods := HTTPMethods{[]byte("GET")}
 	Settings.ModifierConfig = HTTPModifierConfig{Methods: methods}
 
-	emitter := &Emitter{}
+	emitter := NewEmitter()
 	go emitter.Start(appPlugins, "")
 
 	wg.Add(2)

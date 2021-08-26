@@ -47,6 +47,7 @@ func NewRAWInput(address string, config RAWInputConfig) (i *RAWInput) {
 	i = new(RAWInput)
 	i.RAWInputConfig = config
 	i.quit = make(chan bool)
+	i.closed = false
 
 	host, _ports, err := net.SplitHostPort(address)
 	if err != nil {
@@ -171,11 +172,16 @@ func (i *RAWInput) Close() error {
 	return nil
 }
 
+// Check isclosed
+func (i *RAWInput) IsClosed() bool {
+	return i.closed
+}
+
 func (i *RAWInput) addStats(mStats tcp.Stats) {
 	i.Lock()
+	defer i.Unlock()
 	if len(i.messageStats) >= 10000 {
 		i.messageStats = []tcp.Stats{}
 	}
 	i.messageStats = append(i.messageStats, mStats)
-	i.Unlock()
 }

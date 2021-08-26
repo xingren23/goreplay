@@ -5,15 +5,18 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"sync"
 	"time"
 )
 
 // HTTPInput used for sending requests to Gor via http
 type HTTPInput struct {
+	sync.Mutex
 	data     chan []byte
 	address  string
 	listener net.Listener
 	stop     chan bool // Channel used only to indicate goroutine should shutdown
+	closed   bool
 	Service  string
 }
 
@@ -22,6 +25,7 @@ func NewHTTPInput(address string) (i *HTTPInput) {
 	i = new(HTTPInput)
 	i.data = make(chan []byte, 1000)
 	i.stop = make(chan bool)
+	i.closed = false
 
 	i.listen(address)
 
@@ -43,8 +47,19 @@ func (i *HTTPInput) PluginRead() (*Message, error) {
 
 // Close closes this plugin
 func (i *HTTPInput) Close() error {
-	close(i.stop)
+	i.Lock()
+	defer i.Unlock()
+
+	if !i.closed {
+		close(i.stop)
+		i.closed = true
+	}
 	return nil
+}
+
+// Check isclosed
+func (i *HTTPInput) IsClosed() bool {
+	return i.closed
 }
 
 func (i *HTTPInput) handler(w http.ResponseWriter, r *http.Request) {

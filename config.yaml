@@ -1,6 +1,7 @@
 verbose: 2
 address: localhost
 port: 5556
+exit-after: 0
 services:
 #  capture:
 #    input-raw: ":8000"
@@ -10,10 +11,10 @@ services:
 #    http-set-header:
 #      - "Foo: bar"
 #      - "Bar: foo"
-  replay:
-    input-kafka-host: "localhost:9092"
-    input-kafka-topic: "goreplay"
-    output-http: "http://localhost:8002"
+#  replay:
+#    input-kafka-host: "localhost:9092"
+#    input-kafka-topic: "goreplay"
+#    output-http: "http://localhost:8002"
 #  replay2:
 #    input-kafka-host: "localhost:9092"
 #    input-kafka-topic: "goreplay2"

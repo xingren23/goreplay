@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -13,6 +14,7 @@ import (
 // Currently used for internal communication between listener and replay server
 // Can be used for transferring binary payloads like protocol buffers
 type TCPOutput struct {
+	sync.Mutex
 	address     string
 	limit       int
 	buf         []chan *Message
@@ -20,7 +22,7 @@ type TCPOutput struct {
 	config      *TCPOutputConfig
 	workerIndex uint32
 
-	close   bool
+	closed  bool
 	Service string
 }
 
@@ -59,7 +61,7 @@ func (o *TCPOutput) worker(bufferIndex int) {
 	retries := 0
 	conn, err := o.connect(o.address)
 	for {
-		if o.close {
+		if o.closed {
 			return
 		}
 
@@ -119,10 +121,6 @@ func (o *TCPOutput) PluginWrite(msg *Message) (n int, err error) {
 	o.buf[bufferIndex] <- msg
 
 	if o.config.OutputTCPStats {
-		// update service
-		if o.bufStats.Service == "" && o.Service != "" {
-			o.bufStats.Service = o.Service
-		}
 		o.bufStats.Write(len(o.buf[bufferIndex]))
 	}
 
@@ -150,6 +148,11 @@ func (o *TCPOutput) String() string {
 	return fmt.Sprintf("TCP output %s, limit: %d", o.address, o.limit)
 }
 
-func (o *TCPOutput) Close() {
-	o.close = true
+func (o *TCPOutput) Close() error {
+	o.Lock()
+	defer o.Unlock()
+	if !o.closed {
+		o.closed = true
+	}
+	return nil
 }

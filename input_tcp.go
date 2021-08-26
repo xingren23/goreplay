@@ -7,17 +7,19 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 )
 
 // TCPInput used for internal communication
 type TCPInput struct {
+	sync.Mutex
 	data     chan *Message
 	listener net.Listener
 	address  string
 	config   *TCPInputConfig
 	stop     chan bool // Channel used only to indicate goroutine should shutdown
-
-	Service string
+	closed   bool
+	Service  string
 }
 
 // TCPInputConfig represents configuration of a TCP input plugin
@@ -34,6 +36,7 @@ func NewTCPInput(address string, config *TCPInputConfig) (i *TCPInput) {
 	i.address = address
 	i.config = config
 	i.stop = make(chan bool)
+	i.closed = false
 
 	if err := i.listen(address); err != nil {
 		Debug(0, "NewTCPInput nil", err)
@@ -56,9 +59,19 @@ func (i *TCPInput) PluginRead() (msg *Message, err error) {
 
 // Close closes the plugin
 func (i *TCPInput) Close() error {
-	close(i.stop)
-	i.listener.Close()
+	i.Lock()
+	defer i.Unlock()
+	if !i.closed {
+		close(i.stop)
+		i.listener.Close()
+		i.closed = true
+	}
 	return nil
+}
+
+// Check isclosed
+func (i *TCPInput) IsClosed() bool {
+	return i.closed
 }
 
 func (i *TCPInput) listen(address string) error {

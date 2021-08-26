@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/buger/goreplay/server"
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
 	"log"
@@ -161,8 +160,8 @@ func main() {
 
 	// Start http server
 	r := gin.New()
-	server.Config(r)
-	go server.Start(r, fmt.Sprintf("%s:%d", Settings.Address, Settings.Port))
+	Config(r)
+	go Start(r, fmt.Sprintf("%s:%d", Settings.Address, Settings.Port))
 
 	// wait for exit
 	c := make(chan os.Signal, 1)
@@ -174,7 +173,7 @@ func main() {
 	case <-closeCh:
 		exit = 0
 	}
+	Shutdown()
 	AppEmitter.Close()
-	server.Shutdown()
 	os.Exit(exit)
 }

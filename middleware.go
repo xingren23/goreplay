@@ -31,6 +31,7 @@ func NewMiddleware(command string) *Middleware {
 	m.command = command
 	m.data = make(chan *Message, 1000)
 	m.stop = make(chan bool)
+	m.closed = false
 
 	commands := strings.Split(command, " ")
 	ctx, cancl := context.WithCancel(context.Background())
@@ -98,7 +99,7 @@ func (m *Middleware) copy(to io.Writer, from PluginReader) {
 		if err == nil {
 			continue
 		}
-		if m.isClosed() {
+		if m.IsClosed() {
 			return
 		}
 	}
@@ -110,7 +111,7 @@ func (m *Middleware) read(from io.Reader) {
 	var e error
 	for {
 		if line, e = reader.ReadBytes('\n'); e != nil {
-			if m.isClosed() {
+			if m.IsClosed() {
 				return
 			}
 			continue
@@ -146,15 +147,13 @@ func (m *Middleware) String() string {
 	return fmt.Sprintf("Modifying traffic using %q command", m.command)
 }
 
-func (m *Middleware) isClosed() bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+func (m *Middleware) IsClosed() bool {
 	return m.closed
 }
 
 // Close closes this plugin
 func (m *Middleware) Close() error {
-	if m.isClosed() {
+	if m.IsClosed() {
 		return nil
 	}
 	m.mu.Lock()
