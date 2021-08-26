@@ -4,19 +4,18 @@ package main
 
 import (
 	"bytes"
-	"expvar"
 	"flag"
 	"fmt"
+	"github.com/buger/goreplay/server"
+	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
 	"log"
 	"net/http"
 	"net/http/httputil"
-	httppptof "net/http/pprof"
 	"os"
 	"os/signal"
 	"reflect"
 	"runtime"
-	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
@@ -26,39 +25,9 @@ import (
 )
 
 var (
-	cpuprofile    = pflag.String("cpuprofile", "", "write cpu profile to file")
-	memprofile    = pflag.String("memprofile", "", "write memory profile to this file")
 	globalservice = "_global_service_"
+	AppEmitter    = *NewEmitter()
 )
-
-func init() {
-	var defaultServeMux http.ServeMux
-	http.DefaultServeMux = &defaultServeMux
-
-	http.HandleFunc("/debug/vars", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		fmt.Fprintf(w, "{\n")
-		first := true
-		expvar.Do(func(kv expvar.KeyValue) {
-			if kv.Key == "memstats" || kv.Key == "cmdline" {
-				return
-			}
-
-			if !first {
-				fmt.Fprintf(w, ",\n")
-			}
-			first = false
-			fmt.Fprintf(w, "%q: %s", kv.Key, kv.Value)
-		})
-		fmt.Fprintf(w, "\n}\n")
-	})
-
-	http.HandleFunc("/debug/pprof/", httppptof.Index)
-	http.HandleFunc("/debug/pprof/cmdline", httppptof.Cmdline)
-	http.HandleFunc("/debug/pprof/profile", httppptof.Profile)
-	http.HandleFunc("/debug/pprof/symbol", httppptof.Symbol)
-	http.HandleFunc("/debug/pprof/trace", httppptof.Trace)
-}
 
 func loggingMiddleware(addr string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +122,7 @@ func main() {
 	}
 
 	args := os.Args[1:]
-	var plugins *InOutPlugins
+	var appPlugins = new(AppPlugins)
 	if len(args) > 0 && args[0] == "file-server" {
 		if len(args) != 2 {
 			log.Fatal("You should specify port and IP (optional) for the file server. Example: `gor file-server :80`")
@@ -168,37 +137,19 @@ func main() {
 		// viper.WatchConfig()
 		loadConfig(nil)
 
-		plugins = NewPlugins(globalservice, Settings.ServiceSettings, nil)
+		appPlugins = NewPlugins(globalservice, Settings.ServiceSettings, nil)
 		if len(Settings.Services) > 0 {
 			for service, config := range Settings.Services {
-				NewPlugins(service, config, plugins)
+				NewPlugins(service, config, appPlugins)
 			}
 		}
 	}
 
 	log.Printf("[PPID %d and PID %d] Version:%s\n", os.Getppid(), os.Getpid(), VERSION)
 
-	if len(plugins.Inputs) == 0 || len(plugins.Outputs) == 0 || len(plugins.All) < 2 {
-		log.Fatal("Required at least 1 input and 1 output, and 2 all")
-	}
-
-	if *memprofile != "" {
-		profileMEM(*memprofile)
-	}
-
-	if *cpuprofile != "" {
-		profileCPU(*cpuprofile)
-	}
-
-	if Settings.Pprof != "" {
-		go func() {
-			log.Println(http.ListenAndServe(Settings.Pprof, nil))
-		}()
-	}
-
+	// Start emitter
 	closeCh := make(chan int)
-	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go AppEmitter.Start(appPlugins, Settings.Middleware)
 	if Settings.ExitAfter > 0 {
 		log.Printf("Running gor for a duration of %s\n", Settings.ExitAfter)
 
@@ -207,6 +158,13 @@ func main() {
 			close(closeCh)
 		})
 	}
+
+	// Start http server
+	r := gin.New()
+	server.Config(r)
+	go server.Start(r, fmt.Sprintf("%s:%d", Settings.Address, Settings.Port))
+
+	// wait for exit
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	exit := 0
@@ -216,34 +174,7 @@ func main() {
 	case <-closeCh:
 		exit = 0
 	}
-	emitter.Close()
+	AppEmitter.Close()
+	server.Shutdown()
 	os.Exit(exit)
-}
-
-func profileCPU(cpuprofile string) {
-	if cpuprofile != "" {
-		f, err := os.Create(cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-
-		time.AfterFunc(30*time.Second, func() {
-			pprof.StopCPUProfile()
-			f.Close()
-		})
-	}
-}
-
-func profileMEM(memprofile string) {
-	if memprofile != "" {
-		f, err := os.Create(memprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		time.AfterFunc(30*time.Second, func() {
-			pprof.WriteHeapProfile(f)
-			f.Close()
-		})
-	}
 }

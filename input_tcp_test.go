@@ -35,10 +35,14 @@ func TestTCPInput(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp", input.listener.Addr().String())
 
@@ -126,10 +130,14 @@ func TestTCPInputSecure(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	conf := &tls.Config{
 		InsecureSkipVerify: true,

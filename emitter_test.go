@@ -27,10 +27,15 @@ func TestEmitter(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		GlobalService: nil,
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 1000; i++ {
 		wg.Add(1)
@@ -38,6 +43,95 @@ func TestEmitter(t *testing.T) {
 	}
 
 	wg.Wait()
+	emitter.Close()
+}
+
+func TestEmitterAddService(t *testing.T) {
+	wg := new(sync.WaitGroup)
+
+	input := NewTestInput()
+	output := NewTestOutput(func(*Message) {
+		wg.Done()
+	})
+
+	plugins := &InOutPlugins{
+		Inputs:  []PluginReader{input},
+		Outputs: []PluginWriter{output},
+	}
+	appPlugins := &AppPlugins{
+		GlobalService: new(InOutPlugins),
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
+
+	emitter := NewEmitter()
+	go emitter.Start(appPlugins, Settings.Middleware)
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		input.EmitGET()
+	}
+	wgAdd := new(sync.WaitGroup)
+	inputAdd := NewTestInput()
+	inputAdd.Service = "add"
+	outputAdd := NewTestOutput(func(*Message) {
+		wgAdd.Done()
+	})
+	outputAdd.Service = "add"
+
+	pluginsAdd := &InOutPlugins{
+		Inputs:  []PluginReader{inputAdd},
+		Outputs: []PluginWriter{outputAdd},
+	}
+	emitter.AddService("add", pluginsAdd)
+
+	for i := 0; i < 1000; i++ {
+		wgAdd.Add(1)
+		inputAdd.EmitGET()
+	}
+
+	wg.Wait()
+	wgAdd.Wait()
+	emitter.Close()
+}
+
+func TestEmitterCancelService(t *testing.T) {
+	wg := new(sync.WaitGroup)
+
+	input := NewTestInput()
+	output := NewTestOutput(func(*Message) {
+		wg.Done()
+	})
+
+	plugins := &InOutPlugins{
+		Inputs:  []PluginReader{input},
+		Outputs: []PluginWriter{output},
+	}
+	appPlugins := &AppPlugins{
+		GlobalService: nil,
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
+
+	emitter := NewEmitter()
+	go emitter.Start(appPlugins, Settings.Middleware)
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		input.EmitGET()
+	}
+
+	err := emitter.CancelService("test")
+	if err != nil {
+		t.Errorf("cancel service failed, %v", err)
+		return
+	}
+	if _, ok := emitter.AppPlugins.Services["test"]; ok {
+		t.Errorf("canceled service existed")
+		return
+	}
 	emitter.Close()
 }
 
@@ -55,13 +149,17 @@ func TestEmitterFiltered(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	methods := HTTPMethods{[]byte("GET")}
 	Settings.ModifierConfig = HTTPModifierConfig{Methods: methods}
 
 	emitter := &Emitter{}
-	go emitter.Start(plugins, "")
+	go emitter.Start(appPlugins, "")
 
 	wg.Add(2)
 
@@ -119,28 +217,27 @@ func TestGlobalMultipleServices(t *testing.T) {
 	})
 	service2Output.Service = "bar"
 
-	plugins := &InOutPlugins{
-		Inputs: []PluginReader{
-			globalInput,
-			service1Input,
-			service2Input,
+	appPlugins := &AppPlugins{
+		GlobalService: &InOutPlugins{
+			Inputs:  []PluginReader{globalInput},
+			Outputs: []PluginWriter{globalOutput},
 		},
-		Outputs: []PluginWriter{
-			globalOutput,
-			service1Output,
-			service2Output,
+		Services: map[string]*InOutPlugins{
+			"foo": &InOutPlugins{
+				Inputs:  []PluginReader{service1Input},
+				Outputs: []PluginWriter{service1Output},
+			},
+			"bar": &InOutPlugins{
+				Inputs:  []PluginReader{service2Input},
+				Outputs: []PluginWriter{service2Output},
+			},
 		},
 	}
-	plugins.All = append(plugins.All,
-		globalInput, globalOutput,
-		service1Input, service1Output,
-		service2Input, service2Output,
-	)
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 1; i++ {
 		globalWg.Add(1)
 		wg1.Add(1)
 		wg2.Add(1)
@@ -184,10 +281,16 @@ func TestEmitterSplitRoundRobin(t *testing.T) {
 		Outputs: []PluginWriter{output1, output2},
 	}
 
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
+
 	Settings.SplitOutput = true
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 1000; i++ {
 		wg.Add(1)
@@ -226,12 +329,16 @@ func TestEmitterRoundRobin(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output1, output2},
 	}
-	plugins.All = append(plugins.All, input, output1, output2)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	Settings.SplitOutput = true
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 1000; i++ {
 		wg.Add(1)
@@ -275,12 +382,17 @@ func TestEmitterSplitSession(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output1, output2},
 	}
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	Settings.SplitOutput = true
 	Settings.RecognizeTCPSessions = true
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 200; i++ {
 		// Keep session but randomize
@@ -317,10 +429,14 @@ func BenchmarkEmitter(b *testing.B) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	b.ResetTimer()
 

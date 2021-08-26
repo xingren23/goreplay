@@ -71,12 +71,16 @@ func TestRAWInputIPv4(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	addr := "http://127.0.0.1:" + port
 	emitter := NewEmitter()
 	defer emitter.Close()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	// time.Sleep(time.Second)
 	for i := 0; i < 1; i++ {
@@ -140,12 +144,16 @@ func TestRAWInputNoKeepAlive(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	addr := "http://127.0.0.1:" + port
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 10; i++ {
 		// request + response
@@ -208,10 +216,15 @@ func TestRAWInputIPv6(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
 	addr := "http://" + originAddr
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 	for i := 0; i < 10; i++ {
 		// request + response
 		wg.Add(2)
@@ -280,11 +293,15 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{httpOutput},
 	}
-	plugins.All = append(plugins.All, input, httpOutput)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
 	defer emitter.Close()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 	wg.Add(2)
 
 	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--header", "Expect:", "--data-binary", "@README.md")
@@ -361,9 +378,14 @@ func BenchmarkRAWInputWithReplay(b *testing.B) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{testOutput, httpOutput},
 	}
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 	addr := "http://" + originAddr
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

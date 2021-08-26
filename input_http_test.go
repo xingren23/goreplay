@@ -24,10 +24,14 @@ func TestHTTPInput(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	address := strings.Replace(input.address, "[::]", "127.0.0.1", -1)
 
@@ -60,11 +64,15 @@ func TestInputHTTPLargePayload(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
 	defer emitter.Close()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	address := strings.Replace(input.address, "[::]", "127.0.0.1", -1)
 	var req *http.Request

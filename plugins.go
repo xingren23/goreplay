@@ -15,6 +15,7 @@ type Message struct {
 // PluginReader is an interface for input plugins
 type PluginReader interface {
 	PluginRead() (msg *Message, err error)
+	Close() error
 }
 
 // PluginWriter is an interface for output plugins
@@ -32,7 +33,11 @@ type PluginReadWriter interface {
 type InOutPlugins struct {
 	Inputs  []PluginReader
 	Outputs []PluginWriter
-	All     []interface{}
+}
+
+type AppPlugins struct {
+	GlobalService *InOutPlugins
+	Services      map[string]*InOutPlugins
 }
 
 // extractLimitOptions detects if plugin get called with limiter support
@@ -50,7 +55,7 @@ func extractLimitOptions(options string) (string, string) {
 // Automatically detects type of plugin and initialize it
 //
 // See this article if curious about reflect stuff below: http://blog.burntsushi.net/type-parametric-functions-golang
-func (plugins *InOutPlugins) registerPlugin(service string, constructor interface{}, options ...interface{}) error {
+func (plugins *AppPlugins) registerPlugin(service string, constructor interface{}, options ...interface{}) error {
 	var path, limit string
 	vc := reflect.ValueOf(constructor)
 
@@ -81,22 +86,32 @@ func (plugins *InOutPlugins) registerPlugin(service string, constructor interfac
 
 	// Some of the output can be Readers as well because return responses
 	if r, ok := plugin.(PluginReader); ok {
-		plugins.Inputs = append(plugins.Inputs, r)
+		if service == globalservice {
+			plugins.GlobalService.Inputs = append(plugins.GlobalService.Inputs, r)
+		} else {
+			plugins.Services[service].Inputs = append(plugins.Services[service].Inputs, r)
+		}
 	}
 
 	if w, ok := plugin.(PluginWriter); ok {
-		plugins.Outputs = append(plugins.Outputs, w)
+		if service == globalservice {
+			plugins.GlobalService.Outputs = append(plugins.GlobalService.Outputs, w)
+		} else {
+			plugins.Services[service].Outputs = append(plugins.Services[service].Outputs, w)
+		}
 	}
-	plugins.All = append(plugins.All, plugin)
 
 	fmt.Println("Loaded plugin:", service, plugin)
 	return nil
 }
 
-// NewPlugins specify and initialize all available plugins
-func NewPlugins(service string, config ServiceSettings, plugins *InOutPlugins) *InOutPlugins {
+// NewPlugins specify and initialize All available plugins
+func NewPlugins(service string, config ServiceSettings, plugins *AppPlugins) *AppPlugins {
 	if plugins == nil {
-		plugins = new(InOutPlugins)
+		plugins = &AppPlugins{
+			GlobalService: new(InOutPlugins),
+			Services:      make(map[string]*InOutPlugins, 0),
+		}
 	}
 
 	for _, options := range config.InputDummy {

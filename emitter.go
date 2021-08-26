@@ -15,7 +15,7 @@ import (
 // Emitter represents an abject to manage plugins communication
 type Emitter struct {
 	sync.WaitGroup
-	plugins *InOutPlugins
+	AppPlugins *AppPlugins
 }
 
 // NewEmitter creates and initializes new Emitter object.
@@ -24,53 +24,157 @@ func NewEmitter() *Emitter {
 }
 
 // Start initialize loop for sending data from inputs to outputs
-func (e *Emitter) Start(plugins *InOutPlugins, middlewareCmd string) {
-	if Settings.CopyBufferSize < 1 {
-		Settings.CopyBufferSize = 5 << 20
-	}
-	e.plugins = plugins
+func (e *Emitter) Start(appPlugins *AppPlugins, middlewareCmd string) {
+	e.AppPlugins = appPlugins
 
 	if middlewareCmd != "" {
-		middleware := NewMiddleware(middlewareCmd)
-
-		for _, in := range plugins.Inputs {
-			middleware.ReadFrom(in)
-		}
-
-		e.plugins.Inputs = append(e.plugins.Inputs, middleware)
-		e.plugins.All = append(e.plugins.All, middleware)
-		e.Add(1)
-		go func() {
-			defer e.Done()
-			if err := e.CopyMulty(middleware, plugins.Outputs...); err != nil {
-				Debug(2, fmt.Sprintf("[EMITTER] error during copy: %q", err))
+		// TODO : middle for All service, now middle only for global
+		if e.AppPlugins.GlobalService != nil {
+			middleware := NewMiddleware(middlewareCmd)
+			for _, in := range e.AppPlugins.GlobalService.Inputs {
+				middleware.ReadFrom(in)
 			}
-		}()
-	} else {
-		for _, in := range plugins.Inputs {
+
+			e.AppPlugins.GlobalService.Inputs = append(e.AppPlugins.GlobalService.Inputs, middleware)
 			e.Add(1)
-			go func(in PluginReader) {
+			go func() {
 				defer e.Done()
-				if err := e.CopyMulty(in, plugins.Outputs...); err != nil {
+				if err := e.CopyMulty(middleware, e.AppPlugins.GlobalService.Outputs...); err != nil {
 					Debug(2, fmt.Sprintf("[EMITTER] error during copy: %q", err))
 				}
-			}(in)
+			}()
+		}
+	} else {
+		allServiceOutputs := make([]PluginWriter, 0)
+		// start service
+		if len(e.AppPlugins.Services) > 0 {
+			for _, plugins := range e.AppPlugins.Services {
+				serviceOutputs := plugins.Outputs
+				allServiceOutputs = append(allServiceOutputs, plugins.Outputs...)
+				if e.AppPlugins.GlobalService != nil {
+					serviceOutputs = append(serviceOutputs, e.AppPlugins.GlobalService.Outputs...)
+				}
+				for _, in := range plugins.Inputs {
+					e.Add(1)
+					go func(in PluginReader, writers ...PluginWriter) {
+						defer e.Done()
+						if err := e.CopyMulty(in, writers...); err != nil {
+							Debug(2, fmt.Sprintf("[EMITTER] error during copy: %q", err))
+						}
+					}(in, serviceOutputs...)
+				}
+			}
+		}
+
+		// start global
+		if e.AppPlugins.GlobalService != nil {
+			allOutputs := append(allServiceOutputs, e.AppPlugins.GlobalService.Outputs...)
+			for _, in := range e.AppPlugins.GlobalService.Inputs {
+				e.Add(1)
+				go func(in PluginReader, writers ...PluginWriter) {
+					defer e.Done()
+					if err := e.CopyMulty(in, writers...); err != nil {
+						Debug(2, fmt.Sprintf("[EMITTER] error during copy: %q", err))
+					}
+				}(in, allOutputs...)
+			}
 		}
 	}
 }
 
-// Close closes all the goroutine and waits for it to finish.
+// Start service,
+func (e *Emitter) AddService(service string, plugins *InOutPlugins) error {
+	if e.AppPlugins == nil {
+		return fmt.Errorf("emitter AppPlugins is nil, please start emitter first")
+	}
+	// TODO: incompatible with global
+	if service == globalservice || (e.AppPlugins.GlobalService != nil && e.AppPlugins.GlobalService.Inputs != nil &&
+		len(e.AppPlugins.GlobalService.Inputs) > 0) {
+		return fmt.Errorf("emitter AddService incompatible with globalService, service %s", service)
+	}
+
+	// start service
+	if _, ok := e.AppPlugins.Services[service]; !ok {
+		e.AppPlugins.Services[service] = plugins
+		serviceOutputs := plugins.Outputs
+		if e.AppPlugins.GlobalService != nil {
+			serviceOutputs = append(serviceOutputs, e.AppPlugins.GlobalService.Outputs...)
+		}
+		for _, in := range plugins.Inputs {
+			e.Add(1)
+			go func(in PluginReader, writers ...PluginWriter) {
+				defer e.Done()
+				if err := e.CopyMulty(in, writers...); err != nil {
+					Debug(2, fmt.Sprintf("[EMITTER] error during copy: %q", err))
+				}
+			}(in, serviceOutputs...)
+		}
+	} else {
+		return fmt.Errorf("emitter service %s already exist", service)
+	}
+	return nil
+}
+
+// Cancel service
+func (e *Emitter) CancelService(service string) error {
+	if e.AppPlugins == nil {
+		return fmt.Errorf("emitter AppPlugins is nil, please start emitter first")
+	}
+	// TODO: incompatible with global
+	if e.AppPlugins.GlobalService != nil || (e.AppPlugins.GlobalService != nil && e.AppPlugins.GlobalService.Inputs != nil &&
+		len(e.AppPlugins.GlobalService.Inputs) > 0) {
+		return fmt.Errorf("emitter AddService incompatible with globalService, service %s", service)
+	}
+
+	if plugins, ok := e.AppPlugins.Services[service]; ok {
+		for _, in := range plugins.Inputs {
+			if cp, ok := in.(io.Closer); ok {
+				cp.Close()
+			}
+		}
+		for _, out := range plugins.Outputs {
+			if cp, ok := out.(io.Closer); ok {
+				cp.Close()
+			}
+		}
+		delete(e.AppPlugins.Services, service)
+	}
+	return nil
+}
+
+// Close closes All the goroutine and waits for it to finish.
 func (e *Emitter) Close() {
-	for _, p := range e.plugins.All {
-		if cp, ok := p.(io.Closer); ok {
-			cp.Close()
+	for _, plugins := range e.AppPlugins.Services {
+		for _, p := range plugins.Inputs {
+			if cp, ok := p.(io.Closer); ok {
+				cp.Close()
+			}
+		}
+		for _, p := range plugins.Outputs {
+			if cp, ok := p.(io.Closer); ok {
+				cp.Close()
+			}
 		}
 	}
-	if len(e.plugins.All) > 0 {
-		// wait for everything to stop
-		e.Wait()
+
+	if e.AppPlugins.GlobalService != nil {
+		for _, p := range e.AppPlugins.GlobalService.Inputs {
+			if cp, ok := p.(io.Closer); ok {
+				cp.Close()
+			}
+		}
+		for _, p := range e.AppPlugins.GlobalService.Outputs {
+			if cp, ok := p.(io.Closer); ok {
+				cp.Close()
+			}
+		}
 	}
-	e.plugins.All = nil // avoid Close to make changes again
+	e.Wait()
+	//if len(e.AppPlugins.All) > 0 {
+	//	// wait for everything to stop
+	//
+	//}
+	//e.AppPlugins.All = nil // avoid Close to make changes again
 }
 
 // CopyMulty copies from 1 reader to multiple writers
@@ -85,11 +189,11 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 	filteredCount := 0
 
 	service := reflect.ValueOf(src).Elem().FieldByName("Service").String()
-	// TODO : Optimisatio to not check service ID on each write
-	// global-input write to all output, other input write to the service's output
+	// global-input write to All output, other input write to the service's output
 	var serviceWriters []PluginWriter
 	if service == globalservice {
 		serviceWriters = writers
+		Debug(0, service, writers)
 	} else {
 		for _, p := range writers {
 			srv := reflect.ValueOf(p).Elem().FieldByName("Service").String()
@@ -98,6 +202,7 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 			} else if srv == service {
 				serviceWriters = append(serviceWriters, p)
 			}
+			Debug(0, service, srv, p)
 		}
 	}
 

@@ -307,13 +307,14 @@ func CreateTestCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 		Inputs:  requestGenerator.inputs,
 		Outputs: []PluginWriter{output, outputFile},
 	}
-	for _, input := range requestGenerator.inputs {
-		plugins.All = append(plugins.All, input)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
 	}
-	plugins.All = append(plugins.All, output, outputFile)
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	requestGenerator.emit()
 	requestGenerator.wg.Wait()
@@ -341,11 +342,15 @@ func ReadFromTestCaptureFile(captureFile *os.File, count int, callback writeCall
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	wg.Add(count)
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	done := make(chan int, 1)
 	go func() {

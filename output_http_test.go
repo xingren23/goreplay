@@ -56,10 +56,14 @@ func TestHTTPOutput(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{httpOutput, output},
 	}
-	plugins.All = append(plugins.All, input, output, httpOutput)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 10; i++ {
 		// 2 http-output, 2 - test output request
@@ -103,10 +107,14 @@ func TestHTTPOutputKeepOriginalHost(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	wg.Add(1)
 	input.EmitGET()
@@ -136,10 +144,14 @@ func TestHTTPOutputSSL(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	wg.Add(2)
 
@@ -161,6 +173,7 @@ func TestHTTPOutputSessions(t *testing.T) {
 	}))
 	defer server.Close()
 
+	PRO = true
 	Settings.RecognizeTCPSessions = true
 	Settings.SplitOutput = true
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{})
@@ -174,9 +187,13 @@ func TestHTTPOutputSessions(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	uuid1 := []byte("1234567890123456789a0000")
 	uuid2 := []byte("1234567890123456789d0000")
@@ -220,10 +237,14 @@ func BenchmarkHTTPOutput(b *testing.B) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
@@ -254,10 +275,14 @@ func BenchmarkHTTPOutputTLS(b *testing.B) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)

@@ -20,10 +20,14 @@ func TestOutputLimiter(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 100; i++ {
 		input.EmitGET()
@@ -46,10 +50,14 @@ func TestInputLimiter(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 100; i++ {
 		input.(*Limiter).plugin.(*TestInput).EmitGET()
@@ -59,7 +67,7 @@ func TestInputLimiter(t *testing.T) {
 	emitter.Close()
 }
 
-// Should limit all requests
+// Should limit All requests
 func TestPercentLimiter1(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
@@ -72,10 +80,14 @@ func TestPercentLimiter1(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 100; i++ {
 		input.EmitGET()
@@ -84,7 +96,7 @@ func TestPercentLimiter1(t *testing.T) {
 	wg.Wait()
 }
 
-// Should not limit at all
+// Should not limit at All
 func TestPercentLimiter2(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
@@ -98,10 +110,14 @@ func TestPercentLimiter2(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 100; i++ {
 		input.EmitGET()

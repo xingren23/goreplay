@@ -1,17 +1,19 @@
 verbose: 2
+address: localhost
+port: 5556
 services:
-  capture:
-    input-raw: ":8000"
-    output-kafka-host: "localhost:9092"
-    output-kafka-topic: "goreplay"
-    http-allow-header: "single:.*"
-    http-set-header:
-      - "Foo: bar"
-      - "Bar: foo"
-#  replay:
-#    input-kafka-host: "localhost:9092"
-#    input-kafka-topic: "goreplay"
-#    output-http: "http://localhost:8002"
+#  capture:
+#    input-raw: ":8000"
+#    output-kafka-host: "localhost:9092"
+#    output-kafka-topic: "goreplay"
+#    http-allow-header: "single:.*"
+#    http-set-header:
+#      - "Foo: bar"
+#      - "Bar: foo"
+  replay:
+    input-kafka-host: "localhost:9092"
+    input-kafka-topic: "goreplay"
+    output-http: "http://localhost:8002"
 #  replay2:
 #    input-kafka-host: "localhost:9092"
 #    input-kafka-topic: "goreplay2"

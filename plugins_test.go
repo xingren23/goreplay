@@ -10,29 +10,29 @@ func TestPluginsRegistration(t *testing.T) {
 	Settings.OutputHTTP = MultiOption{"www.example.com|10"}
 	Settings.InputFile = MultiOption{"/dev/null"}
 
-	plugins := NewPlugins("", Settings.ServiceSettings, nil)
+	plugins := NewPlugins(globalservice, Settings.ServiceSettings, nil)
 
-	if len(plugins.Inputs) != 3 {
-		t.Errorf("Should be 3 inputs got %d", len(plugins.Inputs))
+	if len(plugins.GlobalService.Inputs) != 3 {
+		t.Errorf("Should be 3 inputs got %d", len(plugins.GlobalService.Inputs))
 	}
 
-	if _, ok := plugins.Inputs[0].(*DummyInput); !ok {
+	if _, ok := plugins.GlobalService.Inputs[0].(*DummyInput); !ok {
 		t.Errorf("First input should be DummyInput")
 	}
 
-	if _, ok := plugins.Inputs[1].(*FileInput); !ok {
+	if _, ok := plugins.GlobalService.Inputs[1].(*FileInput); !ok {
 		t.Errorf("Second input should be FileInput")
 	}
 
-	if len(plugins.Outputs) != 2 {
-		t.Errorf("Should be 2 output %d", len(plugins.Outputs))
+	if len(plugins.GlobalService.Outputs) != 2 {
+		t.Errorf("Should be 2 output %d", len(plugins.GlobalService.Outputs))
 	}
 
-	if _, ok := plugins.Outputs[0].(*DummyOutput); !ok {
+	if _, ok := plugins.GlobalService.Outputs[0].(*DummyOutput); !ok {
 		t.Errorf("First output should be DummyOutput")
 	}
 
-	if l, ok := plugins.Outputs[1].(*Limiter); ok {
+	if l, ok := plugins.GlobalService.Outputs[1].(*Limiter); ok {
 		if _, ok := l.plugin.(*HTTPOutput); !ok {
 			t.Errorf("HTTPOutput should be wrapped in limiter")
 		}

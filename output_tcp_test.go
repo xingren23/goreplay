@@ -28,9 +28,14 @@ func TestTCPOutput(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
@@ -86,11 +91,16 @@ func BenchmarkTCPOutput(b *testing.B) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
 	// avoid counting above initialization
 	b.ResetTimer()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	wg.Wait()
 	emitter.Close()

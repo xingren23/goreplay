@@ -26,10 +26,14 @@ func TestFileOutput(t *testing.T) {
 		Inputs:  []PluginReader{input},
 		Outputs: []PluginWriter{output},
 	}
-	plugins.All = append(plugins.All, input, output)
+	appPlugins := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins,
+		},
+	}
 
 	emitter := NewEmitter()
-	go emitter.Start(plugins, Settings.Middleware)
+	go emitter.Start(appPlugins, Settings.Middleware)
 
 	for i := 0; i < 100; i++ {
 		wg.Add(2)
@@ -52,10 +56,14 @@ func TestFileOutput(t *testing.T) {
 		Inputs:  []PluginReader{input2},
 		Outputs: []PluginWriter{output2},
 	}
-	plugins2.All = append(plugins2.All, input2, output2)
+	appPlugins2 := &AppPlugins{
+		Services: map[string]*InOutPlugins{
+			"test": plugins2,
+		},
+	}
 
 	emitter2 := NewEmitter()
-	go emitter2.Start(plugins2, Settings.Middleware)
+	go emitter2.Start(appPlugins2, Settings.Middleware)
 
 	wg.Wait()
 	emitter2.Close()
