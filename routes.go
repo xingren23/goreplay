@@ -11,8 +11,8 @@ func Config(r *gin.Engine) {
 	sys := r.Group("/api/")
 	{
 		sys.GET("/stats", stats)
-		sys.POST("/create", createService)
-		sys.POST("/cancel/:service", cancelService)
+		sys.POST("/create", createTask)
+		sys.POST("/cancel/:id", cancelTask)
 		sys.POST("/cancel/all", cancelAll)
 	}
 
@@ -27,7 +27,7 @@ func stats(c *gin.Context) {
 /**
 eg :
 {
-	service : "xxxx",
+	task : "xxxx",
 	params:{
 		input-kafka-host: "localhost:9092"
     	input-kafka-topic: "goreplay"
@@ -35,37 +35,37 @@ eg :
 	}
 }
 */
-type ServiceObj struct {
-	Service string          `json:"service"`
-	Params  ServiceSettings `json:"params"`
+type TaskObj struct {
+	Task   string          `json:"task"`
+	Params ServiceSettings `json:"params"`
 }
 
-// create service
-func createService(c *gin.Context) {
-	var serviceObj ServiceObj
-	errors.Dangerous(c.ShouldBind(&serviceObj))
+// create task
+func createTask(c *gin.Context) {
+	var taskObj TaskObj
+	errors.Dangerous(c.ShouldBind(&taskObj))
 
-	appPlugins := NewPlugins(serviceObj.Service, serviceObj.Params, nil)
-	err := AppEmitter.AddService(serviceObj.Service, appPlugins.Services[serviceObj.Service])
+	appPlugins := NewPlugins(taskObj.Task, taskObj.Params, nil)
+	err := AppEmitter.AddService(taskObj.Task, appPlugins.Services[taskObj.Task])
 	if err != nil {
-		renderData(c, "create service err", err)
+		renderData(c, "create task err", err)
 	} else {
-		renderData(c, "create service success", nil)
+		renderData(c, "create task success", nil)
 	}
 }
 
 /**
 {service: "XXXX"}
 */
-// cancel service
-func cancelService(c *gin.Context) {
-	service := urlParamStr(c, "service")
+// cancel task
+func cancelTask(c *gin.Context) {
+	task := urlParamStr(c, "task")
 
-	err := AppEmitter.CancelService(service)
+	err := AppEmitter.CancelService(task)
 	if err != nil {
-		renderData(c, "cancel service err", err)
+		renderData(c, "cancel task err", err)
 	} else {
-		renderData(c, "cancel service success", nil)
+		renderData(c, "cancel task success", nil)
 	}
 }
 
