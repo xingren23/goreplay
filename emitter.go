@@ -182,7 +182,7 @@ func (e *Emitter) Close() {
 // CopyMulty copies from 1 reader to multiple writers
 func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 	wIndex := 0
-	modifier := NewHTTPModifier(&Settings.ModifierConfig)
+	modifier := NewHTTPModifier(&Settings.HTTPModifierConfig)
 	prettifyHttp := Settings.PrettifyHTTP
 	splitOutput := Settings.SplitOutput
 	recognizeTCPSessions := Settings.RecognizeTCPSessions
@@ -195,7 +195,6 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 	var serviceWriters []PluginWriter
 	if service == globalservice {
 		serviceWriters = writers
-		Debug(0, service, writers)
 	} else {
 		for _, p := range writers {
 			srv := reflect.ValueOf(p).Elem().FieldByName("Service").String()
@@ -204,14 +203,13 @@ func (e *Emitter) CopyMulty(src PluginReader, writers ...PluginWriter) error {
 			} else if srv == service {
 				serviceWriters = append(serviceWriters, p)
 			}
-			Debug(0, service, srv, p)
 		}
 	}
 
 	// replace with service's config
 	for s, cfg := range Settings.Services {
 		if s == service {
-			modifier = NewHTTPModifier(&cfg.ModifierConfig)
+			modifier = NewHTTPModifier(&cfg.HTTPModifierConfig)
 			splitOutput = cfg.SplitOutput
 			recognizeTCPSessions = cfg.RecognizeTCPSessions
 		}

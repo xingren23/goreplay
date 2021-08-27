@@ -163,7 +163,7 @@ func TestEmitterFiltered(t *testing.T) {
 	}
 
 	methods := HTTPMethods{[]byte("GET")}
-	Settings.ModifierConfig = HTTPModifierConfig{Methods: methods}
+	Settings.HTTPModifierConfig = HTTPModifierConfig{Methods: methods}
 
 	emitter := NewEmitter()
 	go emitter.Start(appPlugins, "")
@@ -193,7 +193,7 @@ func TestEmitterFiltered(t *testing.T) {
 	wg.Wait()
 	emitter.Close()
 
-	Settings.ModifierConfig = HTTPModifierConfig{}
+	Settings.HTTPModifierConfig = HTTPModifierConfig{}
 }
 
 func TestGlobalMultipleServices(t *testing.T) {

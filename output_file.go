@@ -83,6 +83,7 @@ func NewFileOutput(pathTemplate string, config *FileOutputConfig) *FileOutput {
 	o := new(FileOutput)
 	o.pathTemplate = pathTemplate
 	o.config = config
+	o.closed = false
 	o.updateName()
 
 	if strings.Contains(pathTemplate, "%r") {
@@ -315,14 +316,13 @@ func (o *FileOutput) closeLocked() error {
 		} else {
 			o.writer.(*bufio.Writer).Flush()
 		}
+		Debug(0, "currentFileSize", o.currentFileSize)
 		o.file.Close()
 
 		if o.config.onClose != nil {
 			o.config.onClose(o.file.Name())
 		}
 	}
-
-	o.closed = true
 	return nil
 }
 
@@ -330,12 +330,14 @@ func (o *FileOutput) closeLocked() error {
 func (o *FileOutput) Close() error {
 	o.Lock()
 	defer o.Unlock()
-	return o.closeLocked()
+	if !o.closed {
+		o.closeLocked()
+		o.closed = true
+	}
+	return nil
 }
 
 // IsClosed returns if the output file is closed or not.
 func (o *FileOutput) IsClosed() bool {
-	o.Lock()
-	defer o.Unlock()
 	return o.closed
 }

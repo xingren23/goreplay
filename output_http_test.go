@@ -39,7 +39,7 @@ func TestHTTPOutput(t *testing.T) {
 
 	headers := HTTPHeaders{httpHeader{"User-Agent", "Gor"}}
 	methods := HTTPMethods{[]byte("GET"), []byte("PUT"), []byte("POST")}
-	Settings.ModifierConfig = HTTPModifierConfig{Headers: headers, Methods: methods}
+	Settings.HTTPModifierConfig = HTTPModifierConfig{Headers: headers, Methods: methods}
 
 	httpOutput := NewHTTPOutput(server.URL, &HTTPOutputConfig{TrackResponses: false})
 	if reflect.ValueOf(httpOutput).IsNil() {
@@ -76,7 +76,7 @@ func TestHTTPOutput(t *testing.T) {
 	wg.Wait()
 	emitter.Close()
 
-	Settings.ModifierConfig = HTTPModifierConfig{}
+	Settings.HTTPModifierConfig = HTTPModifierConfig{}
 }
 
 func TestHTTPOutputKeepOriginalHost(t *testing.T) {
@@ -94,7 +94,7 @@ func TestHTTPOutputKeepOriginalHost(t *testing.T) {
 	defer server.Close()
 
 	headers := HTTPHeaders{httpHeader{"Host", "custom-host.com"}}
-	Settings.ModifierConfig = HTTPModifierConfig{Headers: headers}
+	Settings.HTTPModifierConfig = HTTPModifierConfig{Headers: headers}
 
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{OriginalHost: true, SkipVerify: true})
 	if reflect.ValueOf(output).IsNil() {
@@ -121,7 +121,7 @@ func TestHTTPOutputKeepOriginalHost(t *testing.T) {
 
 	wg.Wait()
 	emitter.Close()
-	Settings.ModifierConfig = HTTPModifierConfig{}
+	Settings.HTTPModifierConfig = HTTPModifierConfig{}
 }
 
 func TestHTTPOutputSSL(t *testing.T) {

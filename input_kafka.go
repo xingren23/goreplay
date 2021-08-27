@@ -67,6 +67,7 @@ func NewKafkaInput(address string, config *InputKafkaConfig, tlsConfig *KafkaTLS
 			for message := range consumer.Messages() {
 				Debug(2, "Consume topic ", message.Topic, "offset ", message.Offset)
 				i.messages <- message
+
 			}
 		}(consumer)
 
@@ -128,6 +129,9 @@ func (i *KafkaInput) Close() error {
 	defer i.Unlock()
 	Debug(0, fmt.Sprintf("Close %s", i))
 	if !i.closed {
+		for _, c := range i.consumers {
+			c.AsyncClose()
+		}
 		close(i.quit)
 		i.closed = true
 	}

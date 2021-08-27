@@ -43,7 +43,7 @@ services:
 			"foo": {
 				InputRAW:   MultiOption{"8080"},
 				OutputHTTP: MultiOption{"http://example.com"},
-				ModifierConfig: HTTPModifierConfig{
+				HTTPModifierConfig: HTTPModifierConfig{
 					HeaderFilters: HTTPHeaderFilters{{[]byte("single"), regexp.MustCompile(".*")}},
 					Headers:       HTTPHeaders{{Name: "Foo", Value: "bar"}, {Name: "Bar", Value: "foo"}},
 				},

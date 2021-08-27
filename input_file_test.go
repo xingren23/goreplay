@@ -31,7 +31,6 @@ func TestInputFileWithGET(t *testing.T) {
 		t.Error(err)
 	} else if !expectedCaptureFile.PayloadsEqual(readPayloads) {
 		t.Error("Request read back from file should match")
-
 	}
 }
 
@@ -301,7 +300,9 @@ func CreateTestCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 	})
 	output.Service = "test"
 
-	outputFile := NewFileOutput(f.Name(), &FileOutputConfig{FlushInterval: time.Second, Append: true})
+	outputFile := NewFileOutput(f.Name(), &FileOutputConfig{FlushInterval: time.Second, Append: true, onClose: func(s string) {
+		Debug(0, "fileoutput", s)
+	}})
 	outputFile.Service = "test"
 	plugins := &InOutPlugins{
 		Inputs:  requestGenerator.inputs,

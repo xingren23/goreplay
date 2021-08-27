@@ -16,7 +16,6 @@ import (
 // InputKafkaConfig should contains required information to
 // build producers.
 type InputKafkaConfig struct {
-	producer sarama.AsyncProducer
 	consumer sarama.Consumer
 	Host     string `json:"input-kafka-host" mapstructure:"input-kafka-host"`
 	Topic    string `json:"input-kafka-topic" mapstructure:"input-kafka-topic"`
@@ -26,7 +25,6 @@ type InputKafkaConfig struct {
 // OutputKafkaConfig is the representation of kfka output configuration
 type OutputKafkaConfig struct {
 	producer sarama.AsyncProducer
-	consumer sarama.Consumer
 	Host     string `json:"output-kafka-host" mapstructure:"output-kafka-host"`
 	Topic    string `json:"output-kafka-topic" mapstructure:"output-kafka-topic"`
 	UseJSON  bool   `json:"output-kafka-json-format" mapstructure:"output-kafka-json-format"`

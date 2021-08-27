@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 )
@@ -62,13 +63,6 @@ func (inout *InOutPlugins) IsClosed() bool {
 			}
 		}
 	}
-	for _, p := range inout.Outputs {
-		if cp, ok := p.(PluginReader); ok {
-			if !cp.IsClosed() {
-				closed = false
-			}
-		}
-	}
 
 	return closed
 }
@@ -76,14 +70,14 @@ func (inout *InOutPlugins) IsClosed() bool {
 func (inout *InOutPlugins) Close() error {
 	var err error
 	for _, p := range inout.Inputs {
-		if cp, ok := p.(PluginReader); ok {
+		if cp, ok := p.(io.Closer); ok {
 			if e := cp.Close(); e != nil {
 				err = e
 			}
 		}
 	}
 	for _, p := range inout.Outputs {
-		if cp, ok := p.(PluginReader); ok {
+		if cp, ok := p.(io.Closer); ok {
 			if e := cp.Close(); e != nil {
 				err = e
 			}
@@ -208,7 +202,7 @@ func NewPlugins(service string, config ServiceSettings, plugins *AppPlugins) *Ap
 
 	// If we explicitly set Host header http output should not rewrite it
 	// Fix: https://github.com/buger/gor/issues/174
-	for _, header := range config.ModifierConfig.Headers {
+	for _, header := range config.HTTPModifierConfig.Headers {
 		if header.Name == "Host" {
 			config.OutputHTTPConfig.OriginalHost = true
 			break
