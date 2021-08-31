@@ -158,6 +158,36 @@ func main() {
 		})
 	}
 
+	if Settings.Stats && Settings.HeartBeat != "" {
+		heartbeat := NewHeartBeat(Settings.HeartBeat)
+		if heartbeat != nil {
+			go func(emitter *Emitter, heartbeat *HeartBeat) {
+				stat := StatObj{
+					Host:    Settings.Address,
+					Port:    Settings.Port,
+					Version: VERSION,
+					AppCode: Settings.AppCode,
+				}
+
+				for {
+					// wait for output
+					time.Sleep(3 * time.Second)
+
+					stat.Stats = emitter.GetStats()
+					Debug(0, "stats: ", stats)
+
+					if len(Settings.HeartBeat) > 0 {
+						err := heartbeat.reportStat(stat)
+						if err != nil {
+							Debug(0, "heartbeat stats error,", err)
+						}
+					}
+				}
+			}(&AppEmitter, heartbeat)
+		}
+
+	}
+
 	// Start http server
 	r := gin.New()
 	Config(r)

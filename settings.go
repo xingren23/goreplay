@@ -52,10 +52,12 @@ type ServiceSettings struct {
 }
 
 type AppSettings struct {
+	AppCode        string    `json:"app-code"`
 	Address        string    `json:"address"`
 	Port           int       `json:"port"`
 	Verbose        int       `json:"verbose"`
 	Stats          bool      `json:"stats"`
+	HeartBeat      string    `json:"heartbeat-url"`
 	Pprof          string    `json:"http-pprof"`
 	CopyBufferSize size.Size `json:"copy-buffer-size"`
 	PrettifyHTTP   bool      `json:"prettify-http"`
@@ -100,10 +102,12 @@ func usage() {
 
 func init() {
 	pflag.Usage = usage
+	pflag.StringVar(&Settings.AppCode, "app-code", "goreplay", "host server's app code")
 	pflag.StringVar(&Settings.Address, "address", "localhost", "Http server listen address")
 	pflag.IntVar(&Settings.Port, "port", 5555, "Http server listen port")
 	pflag.IntVar(&Settings.Verbose, "verbose", 0, "set the level of verbosity, if greater than zero then it will turn on debug output")
 	pflag.BoolVar(&Settings.Stats, "stats", false, "Turn on queue stats output")
+	pflag.StringVar(&Settings.HeartBeat, "heartbeat-url", "", "heartbeat url")
 	pflag.Var(&Settings.CopyBufferSize, "copy-buffer-size", "Set the buffer size for an individual request (default 5MB)")
 
 	pflag.DurationVar(&Settings.ExitAfter, "exit-after", 5*time.Minute, "exit after specified duration")
